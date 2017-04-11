@@ -2,9 +2,25 @@
 
 Analysis and submissions code for the Kaggle competition. The idea is to identify question pairs that have the same intent.
 
+## Ideas
+
+### Data Cleaning
+
+* Spell Checker
+* Word tagging (verb, noun, etc.)
+* Remove common words, stop words, and punctuation
+* Stem words (keep only the root)
+
+### Prediction
+
+* See https://www.kaggle.com/c/quora-question-pairs/discussion/30340
+
 ## Useful links
 
 * https://www.kaggle.com/c/quora-question-pairs
+* https://www.kaggle.com/currie32/quora-question-pairs/the-importance-of-cleaning-text/notebook
+* https://www.kaggle.com/currie32/quora-question-pairs/the-importance-of-cleaning-text/comments
+
 
 ## Timeline
 
