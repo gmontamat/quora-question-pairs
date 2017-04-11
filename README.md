@@ -7,6 +7,8 @@ Analysis and submissions code for the Kaggle competition. The idea is to identif
 ### Data Cleaning
 
 * Spell Checker
+  * https://github.com/mattalcock/blog/blob/master/2012/12/5/python-spell-checker.rst
+  * http://stackoverflow.com/questions/40188226/nltks-spell-checker-is-not-working-correctly
 * Word tagging (verb, noun, etc.)
 * Remove common words, stop words, and punctuation
 * Stem words (keep only the root)
