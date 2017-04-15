@@ -21,11 +21,17 @@ Analysis and submissions code for the Kaggle competition. The idea is to identif
 * https://www.linkedin.com/pulse/duplicate-quora-question-abhishek-thakur
 * https://www.kaggle.com/c/quora-question-pairs/discussion/30260
 * https://www.kaggle.com/c/quora-question-pairs/discussion/30340
+* https://engineering.quora.com/Semantic-Question-Matching-with-Deep-Learning
+* TF-IDF
+    - http://stevenloria.com/finding-important-words-in-a-document-using-tf-idf/
+    - http://blog.christianperone.com/2011/09/machine-learning-text-feature-extraction-tf-idf-part-i/
+    - http://blog.christianperone.com/2011/10/machine-learning-text-feature-extraction-tf-idf-part-ii/
 
 ## Useful links
 
 * https://www.kaggle.com/c/quora-question-pairs
-* EDA: https://www.kaggle.com/sudalairajkumar/quora-question-pairs/simple-exploration-notebook-quora-ques-pair/notebook
+* EDA (Exploratory Data Analysis)
+    - https://www.kaggle.com/sudalairajkumar/quora-question-pairs/simple-exploration-notebook-quora-ques-pair/notebook
 
 ## Timeline
 
