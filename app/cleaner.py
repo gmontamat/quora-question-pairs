@@ -21,8 +21,7 @@ class DataCleaner(object):
 
     def clean_column(self, column_name):
         for i, text in enumerate(self.df[column_name]):
-            text = self.clean(text)
-            self.df[column_name][i] = text
+            self.df[column_name][i] = self.clean(text)
 
     @staticmethod
     def clean(text):
