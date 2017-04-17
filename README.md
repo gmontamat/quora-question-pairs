@@ -18,10 +18,16 @@ Analysis and submissions code for the Kaggle competition. The idea is to identif
 
 ### Prediction
 
-* https://www.linkedin.com/pulse/duplicate-quora-question-abhishek-thakur
-* https://www.kaggle.com/c/quora-question-pairs/discussion/30260
-* https://www.kaggle.com/c/quora-question-pairs/discussion/30340
-* https://engineering.quora.com/Semantic-Question-Matching-with-Deep-Learning
+* Several approaches
+    - https://www.linkedin.com/pulse/duplicate-quora-question-abhishek-thakur
+    - https://engineering.quora.com/Semantic-Question-Matching-with-Deep-Learning
+    - https://www.kaggle.com/c/quora-question-pairs/discussion/30260
+    - https://www.kaggle.com/c/quora-question-pairs/discussion/30340
+* Word2Vec
+    - https://code.google.com/archive/p/word2vec/
+	- http://mccormickml.com/2016/04/12/googles-pretrained-word2vec-model-in-python/
+	- http://radimrehurek.com/gensim/index.html
+	- https://rare-technologies.com/word2vec-tutorial/
 * TF-IDF
     - http://stevenloria.com/finding-important-words-in-a-document-using-tf-idf/
     - http://blog.christianperone.com/2011/09/machine-learning-text-feature-extraction-tf-idf-part-i/
