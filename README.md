@@ -12,6 +12,7 @@ Analysis and submissions code for the Kaggle competition. The idea is to identif
 * Remove common words, stop words, and punctuation
 * Stem words (keep only the root)
 * Spell Checker
+    - http://norvig.com/spell-correct.html
     - https://github.com/mattalcock/blog/blob/master/2012/12/5/python-spell-checker.rst
     - http://stackoverflow.com/questions/40188226/nltks-spell-checker-is-not-working-correctly
 * Word tagging (verb, noun, etc.)
@@ -20,6 +21,7 @@ Analysis and submissions code for the Kaggle competition. The idea is to identif
 
 * Several approaches
     - https://www.linkedin.com/pulse/duplicate-quora-question-abhishek-thakur
+    - http://www.erogol.com/duplicate-question-detection-deep-learning/
     - https://engineering.quora.com/Semantic-Question-Matching-with-Deep-Learning
     - https://www.kaggle.com/c/quora-question-pairs/discussion/30260
     - https://www.kaggle.com/c/quora-question-pairs/discussion/30340
@@ -38,6 +40,7 @@ Analysis and submissions code for the Kaggle competition. The idea is to identif
 * https://www.kaggle.com/c/quora-question-pairs
 * EDA (Exploratory Data Analysis)
     - https://www.kaggle.com/sudalairajkumar/quora-question-pairs/simple-exploration-notebook-quora-ques-pair/notebook
+* https://www.kaggle.com/shubh24/d/quora/question-pairs-dataset/everything-you-wanna-know/notebook
 
 ## Timeline
 
