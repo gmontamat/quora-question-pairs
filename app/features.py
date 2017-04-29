@@ -119,7 +119,6 @@ class FeatureCreator(object):
 
 if __name__ == '__main__':
     from load_data import load_data
-
     df = load_data('../data/train.csv')
     fc = FeatureCreator(df)
     fc.add_word2vec_features('../models/GoogleNews-vectors-negative300.bin.gz', 'GoogleNews')
