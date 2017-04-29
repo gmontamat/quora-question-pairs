@@ -98,3 +98,4 @@ ENV/
 *.csv
 *.zip
 *.bin.gz
+*.txt
