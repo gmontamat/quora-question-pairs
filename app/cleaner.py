@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 Data cleaning class
@@ -20,8 +21,9 @@ class DataCleaner(object):
         self.stemmer = SnowballStemmer('english')
 
     def clean_column(self, column_name):
-        for i, text in enumerate(self.df[column_name]):
-            self.df[column_name][i] = self.clean(text)
+        self.df[column_name] = self.df[column_name].apply(self.clean)
+        self.df[column_name] = self.df[column_name].apply(self.remove_symbols, args=(self.punctuation,))
+        # self.df[column_name] = self.df[column_name].apply(self.remove_words, args=(self.stop_words,))
 
     @staticmethod
     def clean(text):
@@ -29,8 +31,18 @@ class DataCleaner(object):
         Adapted from the following script:
         https://www.kaggle.com/currie32/quora-question-pairs/the-importance-of-cleaning-text/notebook
         """
-        text = re.sub(r"\s{2,}", " ", text)  # Remove extra whitespace
+        text = str(text).replace('’', "'")  # Normalize apostrophes
+        text = re.sub(r"(.)&(.)", r"\g<1> and \g<2>", text)  # Replace ampersand with 'and'
+        text = re.sub(r"(.)/(.)", r"\g<1> or \g<2>", text)  # Replace slash with 'or'
+        text = re.sub(r"\s{2,}", r" ", text)  # Remove extra whitespace
 
+        # URLs
+        text = re.sub(
+            r"(\b)(http[s]?://)?(www\.)?([A-Za-z0-9]+)\.(com|org|net|edu)(\.[a-z]+)?(\b)",
+            r"\g<1>\g<4>\g<7>", text
+        )
+
+        # Basic English grammar
         text = re.sub(
             r"(\b)(what|where|how|who|when|why)'s(\b)",
             r"\g<1>\g<2> is\g<3>", text, flags=re.IGNORECASE
@@ -47,19 +59,22 @@ class DataCleaner(object):
         text = re.sub(r"(\b)(i'm|im|i m)(\b)", r"\g<1>I am\g<3>", text, flags=re.IGNORECASE)
 
         # Units of measure
-        text = re.sub(r"([0-9]+)( )?(k|K)", r"\g<1>000", text)
-        text = re.sub(r"([0-9]+)( )?(km|kms|KMs|KM|Km)", r"\g<1> kilometers", text)
+        text = re.sub(r"(\b)([0-9]+)( )?(k|K)(\b)", r"\g<1>\g<2>000\g<5>", text)
+        text = re.sub(r"(\b)([0-9]+)( )?(km|kms|KMs|KM|Km)(\b)", r"\g<1>\g<2> kilometers\g<5>", text)
+        text = re.sub(r"(\b)([0-9]+)([A-Za-z]+)(\b)", r"\g<1>\g<2> \g<3>\g<4>", text)  # Separate numbers from text
 
         # Some common acronyms and compound words
         text = re.sub(r"(\b)e.g(\b)", r"\g<1>eg\g<2>", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)b.g(\b)", r"\g<1>bg\g<2>", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)9.?11(\b)", r"\g<1>911\g<2>", text)
-        text = re.sub(r"(\b)e.?mail(\b)", r"\g<1>email\g<2>", text)
+        text = re.sub(r"(\b)e.mail(\b)", r"\g<1>email\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)on.line(\b)", r"\g<1>online\g<2>", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)dms(\b)", r"\g<1>direct messages\g<2>", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)cs(\b)", r"\g<1>computer science\g<2>", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)upvotes(\b)", r"\g<1>up votes\g<2>", text)
         text = re.sub(r"(\b)bestfriend(\b)", r"\g<1>best friend\g<2>", text)
-        text = re.sub(r"(\b)ios(\b)", r"\g<1>operating system\g<3>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)approx(\b)", r"\g<1>approximate\g<2>", text)
+        text = re.sub(r"(\b)ios(\b)", r"\g<1>operating system\g<2>", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)gps(\b)", r"\g<1>GPS\g<2>", text)
         text = re.sub(r"(\b)gst(\b)", r"\g<1>GST\g<2>", text)
         text = re.sub(r"(\b)dna(\b)", r"\g<1>DNA\g<2>", text)
@@ -100,4 +115,4 @@ class DataCleaner(object):
 if __name__ == '__main__':
     from load_data import load_data
     dc = DataCleaner(load_data('../data/train.csv'))
-    print dc.clean("What's the best way to start learning robotics?")
+    dc.clean_column('question1')
