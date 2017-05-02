@@ -15,6 +15,8 @@ Analysis and submissions code for the Kaggle competition. The idea is to identif
     - http://norvig.com/spell-correct.html
     - https://github.com/mattalcock/blog/blob/master/2012/12/5/python-spell-checker.rst
     - http://stackoverflow.com/questions/40188226/nltks-spell-checker-is-not-working-correctly
+    - Excellent dictionary source: https://dumps.wikimedia.org/enwiki/20170420/
+    - To extract text from Wikipedia dumps: https://github.com/attardi/wikiextractor
 * Word tagging (verb, noun, etc.)
 
 ### Prediction
