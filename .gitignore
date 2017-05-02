@@ -99,3 +99,5 @@ ENV/
 *.zip
 *.bin.gz
 *.txt
+*.bz2
+wiki_*
