@@ -44,7 +44,7 @@ class DataCleaner(object):
 
         # Basic English grammar
         text = re.sub(
-            r"(\b)(what|where|how|who|when|why)'s(\b)",
+            r"(\b)(what|where|how|who|when|why)[']?s(\b)",
             r"\g<1>\g<2> is\g<3>", text, flags=re.IGNORECASE
         )
         text = re.sub(r"'s(\b)", r"\g<1>", text)
@@ -62,6 +62,7 @@ class DataCleaner(object):
         text = re.sub(r"(\b)([0-9]+)( )?(k|K)(\b)", r"\g<1>\g<2>000\g<5>", text)
         text = re.sub(r"(\b)([0-9]+)( )?(km|kms|KMs|KM|Km)(\b)", r"\g<1>\g<2> kilometers\g<5>", text)
         text = re.sub(r"(\b)([0-9]+)([A-Za-z]+)(\b)", r"\g<1>\g<2> \g<3>\g<4>", text)  # Separate numbers from text
+        text = re.sub(r"(\b)([A-Za-z]+)([0-9]+)(\b)", r"\g<1>\g<2> \g<3>\g<4>", text)
 
         # Some common acronyms and compound words
         text = re.sub(r"(\b)e.g(\b)", r"\g<1>eg\g<2>", text, flags=re.IGNORECASE)
@@ -82,6 +83,9 @@ class DataCleaner(object):
         text = re.sub(r"(\b)III(\b)", r"\g<1>3\g<2>", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)iphone(\b)", r"\g<1>phone\g<2>", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)kms(\b)", r"\g<1>kilometers\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)v[\.]?s(\b)", r"\g<1>versus\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)quoran[s]?(\b)", r"\g<1>quora user\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)bday(\b)", r"\g<1>birthday\g<2>", text, flags=re.IGNORECASE)
 
         # Some expressions for the same country
         text = re.sub(r"(\b)(the )?usa(\b)", "\g<1>America\g<3>", text)
@@ -95,9 +99,12 @@ class DataCleaner(object):
 
     @staticmethod
     def remove_symbols(text, symbols):
-        """Remove symbols from text
+        """Remove symbols from text leaving a space if necessary
         """
-        return ''.join([c for c in text if c not in symbols])
+        # return ''.join([c for c in text if c not in symbols])
+        for symbol in symbols:
+            text = text.replace(symbol, ' ')
+        return re.sub(r"\s{2,}", r" ", text)
 
     @staticmethod
     def remove_words(text, words):
