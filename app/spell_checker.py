@@ -5,6 +5,7 @@ Spell checks text
 """
 
 import os
+import math
 import re
 import string
 
@@ -19,7 +20,7 @@ class SpellChecker(object):
     def __init__(self, words_file):
         words = self.get_words(open(words_file).read())
         self.dictionary = Counter(words)
-        self.n_words = float(sum(self.dictionary.values()))
+        self.logn_words = math.log(float(sum(self.dictionary.values())))
 
     @staticmethod
     def get_words(text):
@@ -41,18 +42,24 @@ class SpellChecker(object):
         deletes = [L + R[1:] for L, R in splits if R]
         transposes = [L + R[1] + R[0] + R[2:] for L, R in splits if len(R) > 1]
         replaces = [L + c + R[1:] for L, R in splits if R for c in letters]
-        inserts = [L + c + R for L, R in splits for c in letters]
+        inserts = [L + c + R for L, R in splits for c in letters + ' ']
         return set(deletes + transposes + replaces + inserts)
+
+    def log_probability(self, word):
+        try:
+            return math.log(self.dictionary[word])
+        except ValueError:
+            return -750.0
 
     def word_probability(self, word):
         """Compute estimated probability of a word, P(w)
         """
-        return self.dictionary[word] / self.n_words
+        return sum([self.log_probability(w) - self.logn_words for w in word.split()])
 
     def known_words(self, words):
         """Return subset of 'words' that appear in the dictionary
         """
-        return set(word for word in words if word in self.dictionary)
+        return set(word for word in words if all([w in self.dictionary for w in word.split()]))
 
     def get_candidates(self, word):
         """Generate possible spelling correction for word
@@ -112,7 +119,7 @@ class WikiSpellChecker(SpellChecker):
 
     def __init__(self, wiki_path):
         self.dictionary = self.load_wiki_dump(wiki_path)
-        self.n_words = float(sum(self.dictionary.values()))
+        self.logn_words = math.log(float(sum(self.dictionary.values())))
 
     def load_wiki_dump(self, wiki_path):
         dictionary = Counter()
@@ -126,6 +133,8 @@ class WikiSpellChecker(SpellChecker):
             pattern = re.compile(r'<.*?>')
             text = pattern.sub('', text)
             dictionary.update(self.get_words(text))
+        # Filter dictionary since misspellings are possible
+        dictionary = Counter({word: count for word, count in dictionary.iteritems() if count > 3})
         return dictionary
 
 
@@ -138,6 +147,7 @@ if __name__ == '__main__':
 
     from load_data import load_data
     from cleaner import DataCleaner
+
     train = load_data('../data/train.csv')
     dc = DataCleaner(train)
     dc.clean_column('question1')
