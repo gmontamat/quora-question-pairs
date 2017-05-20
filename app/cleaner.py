@@ -32,8 +32,11 @@ class DataCleaner(object):
         https://www.kaggle.com/currie32/quora-question-pairs/the-importance-of-cleaning-text/notebook
         """
         text = str(text).replace('’', "'")  # Normalize apostrophes
+        text = re.sub(r"&lt;", " ", text)
+        text = re.sub(r"&gt;", " ", text)
         text = re.sub(r"(.)&(.)", r"\g<1> and \g<2>", text)  # Replace ampersand with 'and'
         text = re.sub(r"(.)/(.)", r"\g<1> or \g<2>", text)  # Replace slash with 'or'
+        text = re.sub(r":", r" : ", text)
         text = re.sub(r"\s{2,}", r" ", text)  # Remove extra whitespace
 
         # URLs
@@ -57,12 +60,14 @@ class DataCleaner(object):
         text = re.sub(r"'d", " would", text)
         text = re.sub(r"'ll", " will", text)
         text = re.sub(r"(\b)(i'm|im|i m)(\b)", r"\g<1>I am\g<3>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)(u|U)(\b)", r"\g<1>you\g<3>", text)
 
         # Units of measure
         text = re.sub(r"(\b)([0-9]+)( )?(k|K)(\b)", r"\g<1>\g<2>000\g<5>", text)
         text = re.sub(r"(\b)([0-9]+)( )?(km|kms|KMs|KM|Km)(\b)", r"\g<1>\g<2> kilometers\g<5>", text)
+        text = re.sub(r"(\b)([0-9]+)( )?\%", r"\g<1>\g<2> percent", text)
         text = re.sub(r"(\b)([0-9]+)([A-Za-z]+)(\b)", r"\g<1>\g<2> \g<3>\g<4>", text)  # Separate numbers from text
-        text = re.sub(r"(\b)([A-Za-z]+)([0-9]+)(\b)", r"\g<1>\g<2> \g<3>\g<4>", text)
+        text = re.sub(r"(\b)([A-Za-z]+)([0-9]+)(\b)", r"\g<1>\g<2> \g<3>\g<4>", text)  # Separate text from numbers
 
         # Some common acronyms and compound words
         text = re.sub(r"(\b)e.g(\b)", r"\g<1>eg\g<2>", text, flags=re.IGNORECASE)
@@ -86,6 +91,10 @@ class DataCleaner(object):
         text = re.sub(r"(\b)v[\.]?s(\b)", r"\g<1>versus\g<2>", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)quoran[s]?(\b)", r"\g<1>quora user\g<2>", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)bday(\b)", r"\g<1>birthday\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)mvc(\b)", r"\g<1>model view controller\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)gpa(\b)", r"\g<1>grade point average\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)c[ ]?#", r"\g<1>c sharp", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)c[ ]?\+\+", r"\g<1>c plus plus", text, flags=re.IGNORECASE)
 
         # Some expressions for the same country
         text = re.sub(r"(\b)(the )?usa(\b)", "\g<1>America\g<3>", text)
