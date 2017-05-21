@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Creates features from data
+Generate features from data
 """
 
 import gensim
@@ -15,6 +15,7 @@ from scipy.spatial.distance import cosine, cityblock, jaccard, canberra, euclide
 
 
 class FeatureCreator(object):
+
     def __init__(self, df):
         self.df = df
         self.stop_words = set(stopwords.words('english'))
@@ -53,7 +54,7 @@ class FeatureCreator(object):
             lambda x: fuzz.token_sort_ratio(str(x['question1']), str(x['question2'])), axis=1
         )
 
-    def add_word2vec_features(self, model_path, model_name='w2v'):
+    def add_word2vec_features(self, model_path, model_name='w2v', vector_size=300):
         # Load model and compute Word Mover's Distance
         self.w2c_model = gensim.models.KeyedVectors.load_word2vec_format(model_path, binary=True)
         self.w2c_model.init_sims(replace=True)
@@ -65,10 +66,10 @@ class FeatureCreator(object):
             lambda x: self.word_mover_distance(x['question1'], x['question2']), axis=1
         )
         # Generate vectors from questions
-        question1_vectors = np.zeros((self.df.shape[0], 300))
+        question1_vectors = np.zeros((self.df.shape[0], vector_size))
         for i, text in enumerate(self.df.question1):
             question1_vectors[i, :] = self.text2vec(text)
-        question2_vectors = np.zeros((self.df.shape[0], 300))
+        question2_vectors = np.zeros((self.df.shape[0], vector_size))
         for i, text in enumerate(self.df.question2.values):
             question2_vectors[i, :] = self.text2vec(text)
         # Compute several features using vectors
@@ -97,6 +98,10 @@ class FeatureCreator(object):
         self.df['{}_skew_q2vec'.format(model_name)] = [skew(x) for x in np.nan_to_num(question2_vectors)]
         self.df['{}_kur_q1vec'.format(model_name)] = [kurtosis(x) for x in np.nan_to_num(question1_vectors)]
         self.df['{}_kur_q2vec'.format(model_name)] = [kurtosis(x) for x in np.nan_to_num(question2_vectors)]
+        # Add word vectors as features
+        for i in xrange(vector_size):
+            self.df['{}_q1vec_{}'.format(model_name, i)] = question1_vectors[:, i]
+            self.df['{}_q2vec_{}'.format(model_name, i)] = question2_vectors[:, i]
 
     def word_mover_distance(self, text1, text2):
         text1 = [w for w in str(text1).lower().split() if w not in self.stop_words]
