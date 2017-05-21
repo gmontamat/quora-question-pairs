@@ -114,7 +114,7 @@ class DataCleaner(object):
         """
         # return ''.join([c for c in text if c not in symbols])
         for symbol in symbols:
-            text = text.replace(symbol, ' ')
+            text = str(text).replace(symbol, ' ')
         return re.sub(r"\s{2,}", r" ", text)
 
     @staticmethod
