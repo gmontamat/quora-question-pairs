@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 """
-Spell checks text
+Spell check text
 """
 
 import os
 import math
+import pandas as pd
 import re
 import string
 
@@ -77,7 +78,7 @@ class SpellChecker(object):
         """
         return max(self.get_candidates(word), key=self.word_probability)
 
-    def clean_questions(self, question1, question2):
+    def clean_questions(self, question1, question2, verbose=True):
         """Correct misspellings in a question using a possible matching one
         """
         words1 = self.get_words(question1)
@@ -91,11 +92,13 @@ class SpellChecker(object):
             for candidate in self.get_candidates(word):
                 if candidate in words2:
                     checked_words1.append(candidate)
-                    print '{} ==> {}'.format(word, candidate)
+                    if verbose:
+                        print '{} ==> {}'.format(word, candidate)
                     break
             else:
                 correction = self.correct(word)
-                print '{} ==> {}'.format(word, correction)
+                if verbose:
+                    print '{} ==> {}'.format(word, correction)
                 checked_words1.append(correction)
         for word in words2:
             if word in self.dictionary or word in words1:
@@ -104,11 +107,13 @@ class SpellChecker(object):
             for candidate in self.get_candidates(word):
                 if candidate in words1:
                     checked_words2.append(candidate)
-                    print '{} ==> {}'.format(word, candidate)
+                    if verbose:
+                        print '{} ==> {}'.format(word, candidate)
                     break
             else:
                 correction = self.correct(word)
-                print '{} ==> {}'.format(word, correction)
+                if verbose:
+                    print '{} ==> {}'.format(word, correction)
                 checked_words2.append(correction)
         return ' '.join(checked_words1), ' '.join(checked_words2)
 
@@ -136,6 +141,26 @@ class WikiSpellChecker(SpellChecker):
         # Filter dictionary since misspellings are possible
         dictionary = Counter({word: count for word, count in dictionary.iteritems() if count > 3})
         return dictionary
+
+
+class QuestionSpellChecker(object):
+
+    def __init__(self, df, wiki_path):
+        self.df = df
+        self.sc = SpellChecker(wiki_path)
+
+    def clean_column(self, column_names, new_column_names=None):
+        """Spell check a column of questions in a DataFrame
+        """
+        if type(column_names) is not tuple or len(column_names) != 2:
+            raise ValueError("column_names must be a 2-tuple.")
+        if not new_column_names:
+            new_column_names = column_names
+        spell_checked = pd.DataFrame(columns=new_column_names)
+        for question1, question2 in zip(self.df[column_names[0]], self.df[column_names[1]]):
+            spell_checked.append(sc.clean_questions(question1, question2, verbose=False))
+        for name in new_column_names:
+            self.df[name] = spell_checked[name]
 
 
 if __name__ == '__main__':
