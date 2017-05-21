@@ -20,10 +20,12 @@ class DataCleaner(object):
         self.stop_words = set(stopwords.words('english'))
         self.stemmer = SnowballStemmer('english')
 
-    def clean_column(self, column_name):
-        self.df[column_name] = self.df[column_name].apply(self.clean)
-        self.df[column_name] = self.df[column_name].apply(self.remove_symbols, args=(self.punctuation,))
-        # self.df[column_name] = self.df[column_name].apply(self.remove_words, args=(self.stop_words,))
+    def clean_column(self, column_name, new_column_name=None):
+        if not new_column_name:
+            new_column_name = column_name
+        self.df[new_column_name] = self.df[column_name].apply(self.clean)
+        self.df[new_column_name] = self.df[column_name].apply(self.remove_symbols, args=(self.punctuation,))
+        # self.df[new_column_name] = self.df[column_name].apply(self.remove_words, args=(self.stop_words,))
 
     @staticmethod
     def clean(text):
