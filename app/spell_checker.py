@@ -147,7 +147,7 @@ class QuestionSpellChecker(object):
 
     def __init__(self, df, wiki_path):
         self.df = df
-        self.sc = SpellChecker(wiki_path)
+        self.sc = WikiSpellChecker(wiki_path)
 
     def clean_column(self, column_names, new_column_names=None):
         """Spell check a column of questions in a DataFrame
