@@ -98,8 +98,16 @@ class DataCleaner(object):
         text = re.sub(r"(\b)c[ ]?#", r"\g<1>c sharp", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)c[ ]?\+\+", r"\g<1>c plus plus", text, flags=re.IGNORECASE)
 
-        # Words that exist but are most likely a typo
+        # Words that exist but are most likely a typo or American vs. UK English
         text = re.sub(r"(\b)programing(\b)", r"\g<1>programming\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)colour(\b)", r"\g<1>color\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)travelling(\b)", r"\g<1>traveling\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)travelled(\b)", r"\g<1>traveled\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)theater(\b)", r"\g<1>theatre\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)enrol(\b)", r"\g<1>enroll\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)counsellor(\b)", r"\g<1>counselor\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)center(\b)", r"\g<1>centre\g<2>", text, flags=re.IGNORECASE)
+        text = re.sub(r"(\b)autumn(\b)", r"\g<1>fall\g<2>", text, flags=re.IGNORECASE)
 
         # Some expressions for the same country
         text = re.sub(r"(\b)(the )?usa(\b)", "\g<1>America\g<3>", text)
