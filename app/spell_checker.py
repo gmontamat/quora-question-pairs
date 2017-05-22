@@ -156,11 +156,12 @@ class QuestionSpellChecker(object):
             raise ValueError("column_names must be a 2-tuple.")
         if not new_column_names:
             new_column_names = column_names
-        spell_checked = pd.DataFrame(columns=new_column_names)
+        spell_checked = []
         for question1, question2 in zip(self.df[column_names[0]], self.df[column_names[1]]):
-            spell_checked.append(sc.clean_questions(question1, question2, verbose=False))
+            spell_checked.append(list(self.sc.clean_questions(question1, question2, verbose=False)))
+        spell_checked_df = pd.DataFrame(spell_checked, columns=new_column_names)
         for name in new_column_names:
-            self.df[name] = spell_checked[name]
+            self.df[name] = spell_checked_df[name]
 
 
 if __name__ == '__main__':
@@ -169,6 +170,7 @@ if __name__ == '__main__':
     print sc.correct('whatsover')
     print sc.correct('verfify')
     print sc.correct('nintendo')
+    print sc.correct('programing')  # "programing" is actually a word
 
     from load_data import load_data
     from cleaner import DataCleaner
