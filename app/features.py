@@ -123,6 +123,7 @@ class FeatureCreator(object):
 
 
 if __name__ == '__main__':
+    from csv import QUOTE_ALL
     from load_data import load_data
     df = load_data('../data/train.csv')
     fc = FeatureCreator(df)
@@ -130,4 +131,4 @@ if __name__ == '__main__':
     fc.add_basic_features()
     fc.add_fuzz_features()
     print list(df)
-    df.to_csv('train_features.csv', index=False)
+    df.to_csv('train_features.csv', index=False, quoting=QUOTE_ALL)
