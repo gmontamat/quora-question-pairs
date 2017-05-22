@@ -29,12 +29,13 @@ def pre_process():
     train_new.to_csv('../data/train_new.csv', index=False, quoting=QUOTE_ALL)
     # Cleaning
     print 'Cleaning data...'
-    train = pd.concat([load_data('../data/train.csv'), load_data('../data/train_new.csv')])
+    train = pd.concat([
+        load_data('../data/train.csv', remove_id_columns=False),
+        load_data('../data/train_new.csv', remove_id_columns=False)
+    ])
     dc = DataCleaner(train)
     dc.clean_column('question1', 'question1_clean')
     dc.clean_column('question2', 'question2_clean')
-    print 'Saving progress...'
-    train.to_csv('../data/train_clean1.csv', index=False, quoting=QUOTE_ALL)
     # Spell-checking
     print 'Spell-checking data...'
     sc = QuestionSpellChecker(train, '../dictionaries/text/')
