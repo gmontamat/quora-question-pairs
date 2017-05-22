@@ -24,7 +24,7 @@ class DataCleaner(object):
         if not new_column_name:
             new_column_name = column_name
         self.df[new_column_name] = self.df[column_name].apply(self.clean)
-        self.df[new_column_name] = self.df[column_name].apply(self.remove_symbols, args=(self.punctuation,))
+        self.df[new_column_name] = self.df[new_column_name].apply(self.remove_symbols, args=(self.punctuation,))
         # self.df[new_column_name] = self.df[column_name].apply(self.remove_words, args=(self.stop_words,))
 
     @staticmethod
@@ -115,7 +115,7 @@ class DataCleaner(object):
         """
         # return ''.join([c for c in text if c not in symbols])
         for symbol in symbols:
-            text = str(text).replace(symbol, ' ')
+            text = text.replace(symbol, ' ').strip()
         return re.sub(r"\s{2,}", r" ", text)
 
     @staticmethod
