@@ -97,6 +97,8 @@ class DataCleaner(object):
         text = re.sub(r"(\b)gpa(\b)", r"\g<1>grade point average\g<2>", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)c[ ]?#", r"\g<1>c sharp", text, flags=re.IGNORECASE)
         text = re.sub(r"(\b)c[ ]?\+\+", r"\g<1>c plus plus", text, flags=re.IGNORECASE)
+
+        # Words that exist but are most likely a typo
         text = re.sub(r"(\b)programing(\b)", r"\g<1>programming\g<2>", text, flags=re.IGNORECASE)
 
         # Some expressions for the same country
