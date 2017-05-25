@@ -3,8 +3,9 @@
 """
 Main app
 
-1. Pre-process: train data enhancing, cleaning, spell-checking, and feature creation
-2. Process: train ML model
+1. clean_train(): data enhancing, cleaning, and spell-checking
+2. create_features_train(): generate features from data
+3. Train model: train ML model
 3. Post-process: test data cleaning and feature creation
 """
 
@@ -16,10 +17,11 @@ from load_data import load_data
 from enhancer import QuestionPairsEnhancer
 from cleaner import DataCleaner
 from spell_checker import QuestionSpellChecker
+from features import FeatureCreator
 
 
-def pre_process():
-    """Generate features 
+def clean_train():
+    """Full cleaning and enhancing of data 
     """
     # Enhancing (add extra question pairs)
     print 'Enhancing data...'
@@ -45,5 +47,22 @@ def pre_process():
     train.to_csv('../data/train_clean.csv', index=False, quoting=QUOTE_ALL)
 
 
+def create_features_train():
+    """Generate features to train ML model
+    Needs +16Gb of RAM!
+    """
+    train = load_data('../data/train_clean.csv')
+    fc = FeatureCreator(train, 'question1_sc', 'question2_sc')
+    print 'Generating word2vec features...'
+    fc.add_word2vec_features('../models/GoogleNews-vectors-negative300.bin.gz', 'GoogleNews')
+    print 'Generating basic features...'
+    fc.add_basic_features()
+    print 'Generating fuzzy features...'
+    fc.add_fuzz_features()
+    print 'Saving progress...'
+    train.to_csv('../data/train_features.csv', index=False, quoting=QUOTE_ALL)
+
+
 if __name__ == '__main__':
-    pre_process()
+    # clean_train()
+    create_features_train()
