@@ -16,42 +16,47 @@ from scipy.spatial.distance import cosine, cityblock, jaccard, canberra, euclide
 
 class FeatureCreator(object):
 
-    def __init__(self, df):
+    def __init__(self, df, q1_column='question1', q2_column='question2'):
         self.df = df
+        self.q1_column = q1_column
+        self.q2_column = q2_column
         self.stop_words = set(stopwords.words('english'))
         self.w2c_model = None
 
     def add_basic_features(self):
-        self.df['len_q1'] = self.df.question1.apply(lambda x: len(str(x)))
-        self.df['len_q2'] = self.df.question2.apply(lambda x: len(str(x)))
+        self.df['len_q1'] = self.df[self.q1_column].apply(lambda x: len(str(x)))
+        self.df['len_q2'] = self.df[self.q2_column].apply(lambda x: len(str(x)))
         self.df['diff_len'] = self.df.len_q1 - self.df.len_q1
-        self.df['len_char_q1'] = self.df.question1.apply(lambda x: len(''.join(set(str(x).replace(' ', '')))))
-        self.df['len_char_q2'] = self.df.question2.apply(lambda x: len(''.join(set(str(x).replace(' ', '')))))
-        self.df['len_word_q1'] = self.df.question1.apply(lambda x: len(str(x).split()))
-        self.df['len_word_q2'] = self.df.question2.apply(lambda x: len(str(x).split()))
+        self.df['len_char_q1'] = self.df[self.q1_column].apply(lambda x: len(''.join(set(str(x).replace(' ', '')))))
+        self.df['len_char_q2'] = self.df[self.q2_column].apply(lambda x: len(''.join(set(str(x).replace(' ', '')))))
+        self.df['len_word_q1'] = self.df[self.q1_column].apply(lambda x: len(str(x).split()))
+        self.df['len_word_q2'] = self.df[self.q2_column].apply(lambda x: len(str(x).split()))
         self.df['common_words'] = self.df.apply(
             lambda x: len(
-                set(str(x['question1']).lower().split()).intersection(set(str(x['question2']).lower().split()))
+                set(str(x[self.q1_column]).lower().split()).intersection(set(str(x[self.q2_column]).lower().split()))
             ), axis=1
         )
 
     def add_fuzz_features(self):
-        self.df['fuzz_qratio'] = self.df.apply(lambda x: fuzz.QRatio(str(x['question1']), str(x['question2'])), axis=1)
-        self.df['fuzz_wratio'] = self.df.apply(lambda x: fuzz.WRatio(str(x['question1']), str(x['question2'])), axis=1)
+        self.df['fuzz_qratio'] = self.df.apply(
+            lambda x: fuzz.QRatio(str(x[self.q1_column]), str(x[self.q2_column])), axis=1
+        )
+        self.df['fuzz_wratio'] = self.df.apply(
+            lambda x: fuzz.WRatio(str(x[self.q1_column]), str(x[self.q2_column])), axis=1)
         self.df['fuzz_partial_ratio'] = self.df.apply(
-            lambda x: fuzz.partial_ratio(str(x['question1']), str(x['question2'])), axis=1
+            lambda x: fuzz.partial_ratio(str(x[self.q1_column]), str(x[self.q2_column])), axis=1
         )
         self.df['fuzz_partial_token_set_ratio'] = self.df.apply(
-            lambda x: fuzz.partial_token_set_ratio(str(x['question1']), str(x['question2'])), axis=1
+            lambda x: fuzz.partial_token_set_ratio(str(x[self.q1_column]), str(x[self.q2_column])), axis=1
         )
         self.df['fuzz_partial_token_sort_ratio'] = self.df.apply(
-            lambda x: fuzz.partial_token_sort_ratio(str(x['question1']), str(x['question2'])), axis=1
+            lambda x: fuzz.partial_token_sort_ratio(str(x[self.q1_column]), str(x[self.q2_column])), axis=1
         )
         self.df['fuzz_token_set_ratio'] = self.df.apply(
-            lambda x: fuzz.token_set_ratio(str(x['question1']), str(x['question2'])), axis=1
+            lambda x: fuzz.token_set_ratio(str(x[self.q1_column]), str(x[self.q2_column])), axis=1
         )
         self.df['fuzz_token_sort_ratio'] = self.df.apply(
-            lambda x: fuzz.token_sort_ratio(str(x['question1']), str(x['question2'])), axis=1
+            lambda x: fuzz.token_sort_ratio(str(x[self.q1_column]), str(x[self.q2_column])), axis=1
         )
 
     def add_word2vec_features(self, model_path, model_name='w2v', vector_size=300):
@@ -67,10 +72,10 @@ class FeatureCreator(object):
         )
         # Generate vectors from questions
         question1_vectors = np.zeros((self.df.shape[0], vector_size))
-        for i, text in enumerate(self.df.question1):
+        for i, text in enumerate(self.df[self.q1_column]):
             question1_vectors[i, :] = self.text2vec(text)
         question2_vectors = np.zeros((self.df.shape[0], vector_size))
-        for i, text in enumerate(self.df.question2.values):
+        for i, text in enumerate(self.df[self.q2_column]):
             question2_vectors[i, :] = self.text2vec(text)
         # Compute several features using vectors
         self.df['{}_cosine_distance'.format(model_name)] = [
