@@ -72,11 +72,10 @@ class FeatureCreator(object):
         )
         # Generate vectors from questions
         question1_vectors = np.zeros((self.df.shape[0], vector_size))
-        for i, text in enumerate(self.df[self.q1_column]):
-            question1_vectors[i, :] = self.text2vec(text)
         question2_vectors = np.zeros((self.df.shape[0], vector_size))
-        for i, text in enumerate(self.df[self.q2_column]):
-            question2_vectors[i, :] = self.text2vec(text)
+        for i, row in self.df.iteritems():
+            question1_vectors[i, :] = self.text2vec(row[self.q1_column])
+            question2_vectors[i, :] = self.text2vec(row[self.q2_column])
         # Compute several features using vectors
         self.df['{}_cosine_distance'.format(model_name)] = [
             cosine(x, y) for (x, y) in zip(np.nan_to_num(question1_vectors), np.nan_to_num(question2_vectors))
