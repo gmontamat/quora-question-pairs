@@ -16,6 +16,7 @@ class DataCleaner(object):
 
     def __init__(self, df):
         self.df = df
+        self.df.fillna('', inplace=True)
         self.punctuation = punctuation
         self.stop_words = set(stopwords.words('english'))
         self.stemmer = SnowballStemmer('english')
