@@ -53,8 +53,10 @@ def create_features_train():
     """
     train = load_data('../data/train_clean.csv')
     fc = FeatureCreator(train, 'question1_sc', 'question2_sc')
-    print 'Generating word2vec features...'
+    print 'Generating word2vec GoogleNews features...'
     fc.add_word2vec_features('../models/GoogleNews-vectors-negative300.bin.gz', 'GoogleNews')
+    # print 'Generating word2vec freebase features...'
+    # fc.add_word2vec_features('../models/freebase-vectors-skipgram1000-en.bin.gz', 'freebase', 1000)
     print 'Generating basic features...'
     fc.add_basic_features()
     print 'Generating fuzzy features...'
@@ -64,5 +66,5 @@ def create_features_train():
 
 
 if __name__ == '__main__':
-    # clean_train()
+    clean_train()
     create_features_train()
