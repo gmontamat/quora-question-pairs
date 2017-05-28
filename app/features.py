@@ -26,7 +26,7 @@ class FeatureCreator(object):
     def add_basic_features(self):
         self.df['len_q1'] = self.df[self.q1_column].apply(lambda x: len(str(x)))
         self.df['len_q2'] = self.df[self.q2_column].apply(lambda x: len(str(x)))
-        self.df['diff_len'] = self.df.len_q1 - self.df.len_q1
+        self.df['diff_len'] = self.df.len_q1 - self.df.len_q2
         self.df['len_char_q1'] = self.df[self.q1_column].apply(lambda x: len(''.join(set(str(x).replace(' ', '')))))
         self.df['len_char_q2'] = self.df[self.q2_column].apply(lambda x: len(''.join(set(str(x).replace(' ', '')))))
         self.df['len_word_q1'] = self.df[self.q1_column].apply(lambda x: len(str(x).split()))
