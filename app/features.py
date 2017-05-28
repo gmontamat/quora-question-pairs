@@ -60,6 +60,8 @@ class FeatureCreator(object):
         )
 
     def add_word2vec_features(self, model_path, model_name='w2v', vector_size=300):
+        """ word2vec features require a lot of RAM to be computed
+        """
         # Load model and compute Word Mover's Distance
         self.w2c_model = gensim.models.KeyedVectors.load_word2vec_format(model_path, binary=True)
         self.w2c_model.init_sims(replace=True)
@@ -73,9 +75,10 @@ class FeatureCreator(object):
         # Generate vectors from questions
         question1_vectors = np.zeros((self.df.shape[0], vector_size))
         question2_vectors = np.zeros((self.df.shape[0], vector_size))
-        for i, row in self.df.iteritems():
+        for i, row in self.df.iterrows():
             question1_vectors[i, :] = self.text2vec(row[self.q1_column])
             question2_vectors[i, :] = self.text2vec(row[self.q2_column])
+        self.w2c_model = None  # Save up some RAM
         # Compute several features using vectors
         self.df['{}_cosine_distance'.format(model_name)] = [
             cosine(x, y) for (x, y) in zip(np.nan_to_num(question1_vectors), np.nan_to_num(question2_vectors))
