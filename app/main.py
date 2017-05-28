@@ -65,6 +65,22 @@ def create_features_train():
     train.to_csv('../data/train_features.csv', index=False, quoting=QUOTE_ALL)
 
 
+def clean_test():
+    """Cleaning of test data
+    """
+    print 'Cleaning data...'
+    test = load_data('../data/test.csv')
+    dc = DataCleaner(test)
+    dc.clean_column('question1', 'question1_clean')
+    dc.clean_column('question2', 'question2_clean')
+    print 'Spell-checking data...'
+    sc = QuestionSpellChecker(test, '../dictionaries/text/')
+    sc.clean_column(('question1_clean', 'question2_clean'), ('question1_sc', 'question2_sc'))
+    print 'Saving progress...'
+    test.to_csv('../data/test_clean.csv', index=False, quoting=QUOTE_ALL)
+
+
 if __name__ == '__main__':
-    clean_train()
-    create_features_train()
+    # clean_train()
+    # create_features_train()
+    clean_test()
