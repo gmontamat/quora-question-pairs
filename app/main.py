@@ -21,7 +21,7 @@ from features import FeatureCreator
 
 
 def clean_train():
-    """Full cleaning and enhancing of data 
+    """Full cleaning and enhancing of train data
     """
     # Enhancing (add extra question pairs)
     print 'Enhancing data...'
@@ -48,8 +48,7 @@ def clean_train():
 
 
 def create_features_train():
-    """Generate features to train ML model
-    Needs +16Gb of RAM!
+    """Generate features to train ML model. Needs +16Gb of RAM!
     """
     train = load_data('../data/train_clean.csv')
     fc = FeatureCreator(train, 'question1_sc', 'question2_sc')
@@ -79,6 +78,13 @@ def clean_test():
     print 'Saving progress...'
     test.to_csv('../data/test_clean.csv', index=False, quoting=QUOTE_ALL)
 
+
+def predict():
+    """Load clean test set, generate its features and predict similarity"""
+    for test_chunk in pd.read_csv('../data/test_clean.csv', chunksize=10000):
+        print 'New chunk...'
+        print 'Generating word2vec GoogleNews features...'
+        fc.add_word2vec_features('../models/GoogleNews-vectors-negative300.bin.gz', 'GoogleNews')
 
 if __name__ == '__main__':
     # clean_train()
