@@ -18,6 +18,7 @@ from enhancer import QuestionPairsEnhancer
 from cleaner import DataCleaner
 from spell_checker import QuestionSpellChecker
 from features import FeatureCreator
+from nnet import QuestionPairsClassifier
 
 
 def clean_train():
@@ -79,14 +80,41 @@ def clean_test():
     test.to_csv('../data/test_clean.csv', index=False, quoting=QUOTE_ALL)
 
 
+def train_neural_net():
+    """Train and save model to classify question pairs
+    """
+    features = [
+        'len_q1', 'len_q2', 'diff_len', 'len_char_q1', 'len_char_q2', 'len_word_q1', 'len_word_q2', 'common_words',
+        'fuzz_qratio', 'fuzz_wratio', 'fuzz_partial_ratio', 'fuzz_partial_token_set_ratio',
+        'fuzz_partial_token_sort_ratio', 'fuzz_token_set_ratio', 'fuzz_token_sort_ratio', 'GoogleNews_norm_wmd',
+        'GoogleNews_wmd', 'GoogleNews_cosine_distance', 'GoogleNews_cityblock_distance', 'GoogleNews_jaccard_distance',
+        'GoogleNews_canberra_distance', 'GoogleNews_euclidean_distance', 'GoogleNews_minkowski_distance',
+        'GoogleNews_braycurtis_distance', 'GoogleNews_skew_q1vec', 'GoogleNews_skew_q2vec', 'GoogleNews_kur_q1vec',
+        'GoogleNews_kur_q2vec'
+    ]
+    features += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
+    features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
+    qpc = QuestionPairsClassifier(hidden_layer_sizes=(100, 100), max_iter=1000)
+    for train_chunk in pd.read_csv('../data/train_features.csv', chunksize=50000):
+        print 'New chunk...'
+        x = train_chunk[features]
+        y = train_chunk['is_duplicate']
+        qpc.train_model(x, y)
+    print 'Saving model...'
+    qpc.save_model('../models')
+
+
 def predict():
-    """Load clean test set, generate its features and predict similarity"""
+    """Load clean test set, generate its features, and predict similarity
+    using a trained neural net"""
     for test_chunk in pd.read_csv('../data/test_clean.csv', chunksize=10000):
         print 'New chunk...'
         print 'Generating word2vec GoogleNews features...'
         fc.add_word2vec_features('../models/GoogleNews-vectors-negative300.bin.gz', 'GoogleNews')
 
+
 if __name__ == '__main__':
     # clean_train()
     # create_features_train()
-    clean_test()
+    # clean_test()
+    train_neural_net()
