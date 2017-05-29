@@ -10,7 +10,7 @@ Main app
 """
 
 import pandas as pd
-from csv import QUOTE_ALL
+from csv import QUOTE_ALL, QUOTE_NONE
 
 # User-defined modules
 from load_data import load_data
@@ -107,14 +107,47 @@ def train_neural_net():
 def predict():
     """Load clean test set, generate its features, and predict similarity
     using a trained neural net"""
-    for test_chunk in pd.read_csv('../data/test_clean.csv', chunksize=10000):
+    predictions = pd.DataFrame(columns=('test_id', 'is_duplicate'))
+    # Features used for classification
+    features = [
+        'len_q1', 'len_q2', 'diff_len', 'len_char_q1', 'len_char_q2', 'len_word_q1', 'len_word_q2', 'common_words',
+        'fuzz_qratio', 'fuzz_wratio', 'fuzz_partial_ratio', 'fuzz_partial_token_set_ratio',
+        'fuzz_partial_token_sort_ratio', 'fuzz_token_set_ratio', 'fuzz_token_sort_ratio', 'GoogleNews_norm_wmd',
+        'GoogleNews_wmd', 'GoogleNews_cosine_distance', 'GoogleNews_cityblock_distance', 'GoogleNews_jaccard_distance',
+        'GoogleNews_canberra_distance', 'GoogleNews_euclidean_distance', 'GoogleNews_minkowski_distance',
+        'GoogleNews_braycurtis_distance', 'GoogleNews_skew_q1vec', 'GoogleNews_skew_q2vec', 'GoogleNews_kur_q1vec',
+        'GoogleNews_kur_q2vec'
+    ]
+    features += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
+    features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
+    # Load Neural Net for classification
+    qpc = QuestionPairsClassifier(model_path='../models')
+    # Process test set in chunks
+    for test_chunk in pd.read_csv('../data/test_clean.csv', chunksize=1000):
         print 'New chunk...'
+        # Generate features
+        fc = FeatureCreator(test_chunk, 'question1_sc', 'question2_sc')
         print 'Generating word2vec GoogleNews features...'
         fc.add_word2vec_features('../models/GoogleNews-vectors-negative300.bin.gz', 'GoogleNews')
+        print 'Generating basic features...'
+        fc.add_basic_features()
+        print 'Generating fuzzy features...'
+        fc.add_fuzz_features()
+        # Classify pair
+        print 'Classifying...'
+        x = test_chunk[features]
+        test_chunk['is_duplicate'] = qpc.predict_probability(x)[:, 1]
+        # Accumulate results
+        print 'Saving results...'
+        predictions = pd.concat([predictions, test_chunk[['test_id', 'is_duplicate']]])
+    # Save predictions
+    print 'Generating submission file...'
+    predictions.to_csv('../data/submission.csv', index=False, quoting=QUOTE_NONE)
 
 
 if __name__ == '__main__':
     # clean_train()
     # create_features_train()
     # clean_test()
-    train_neural_net()
+    # train_neural_net()
+    predict()
