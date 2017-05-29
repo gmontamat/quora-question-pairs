@@ -16,7 +16,7 @@ from sklearn.preprocessing import StandardScaler, Imputer
 class QuestionPairsClassifier(object):
 
     def __init__(self, model_path=None, hidden_layer_sizes=(100, 100),
-                 activation='tanh', solver='adam', alpha=1e-5, max_iter=1000):
+                 activation='tanh', solver='adam', alpha=1e-7, max_iter=1000):
         if model_path:
             self.neural_net, self.imputer, self.scaler = self.load_model(model_path)
             self.ready = True
@@ -33,8 +33,11 @@ class QuestionPairsClassifier(object):
         self.scaler.partial_fit(x)
         x = self.scaler.transform(x)
         print 'Fitting Neural Net...'
-        self.neural_net.partial_fit(x, y, classes=np.array([0, 1]))
-        self.ready = True
+        if not self.ready:
+            self.neural_net.partial_fit(x, y, classes=np.array([0, 1]))
+            self.ready = True
+        else:
+            self.neural_net.partial_fit(x, y)
 
     @staticmethod
     def load_model(model_path):
@@ -71,8 +74,8 @@ if __name__ == '__main__':
     ]
     features += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
     features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
-    qpc = QuestionPairsClassifier(hidden_layer_sizes=(100, 80, 50, 10), max_iter=1000)
-    for train_chunk in pd.read_csv('../data/train_features.csv', chunksize=10000):
+    qpc = QuestionPairsClassifier(hidden_layer_sizes=(100, 100), max_iter=1000)
+    for train_chunk in pd.read_csv('../data/train_features.csv', chunksize=50000):
         print 'New chunk...'
         x = train_chunk[features]
         y = train_chunk['is_duplicate']
