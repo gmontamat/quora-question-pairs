@@ -5,6 +5,7 @@ Train a Neural Network model on train set
 """
 
 import os
+import numpy as np
 import pandas as pd
 
 from sklearn.externals import joblib
@@ -15,7 +16,7 @@ from sklearn.preprocessing import StandardScaler, Imputer
 class QuestionPairsClassifier(object):
 
     def __init__(self, model_path=None, hidden_layer_sizes=(100, 100),
-                 activation='tanh', solver='lbfgs', alpha=1e-7, max_iter=1000):
+                 activation='tanh', solver='adam', alpha=1e-5, max_iter=1000):
         if model_path:
             self.neural_net, self.imputer, self.scaler = self.load_model(model_path)
             self.ready = True
@@ -27,13 +28,12 @@ class QuestionPairsClassifier(object):
 
     def train_model(self, x, y):
         print 'Fixing NaNs in train data...'
-        self.imputer.fit(x)
-        x = self.imputer.transform(x)
+        x = self.imputer.fit_transform(x)
         print 'Scaling train data...'
-        self.scaler.fit(x)
+        self.scaler.partial_fit(x)
         x = self.scaler.transform(x)
         print 'Fitting Neural Net...'
-        self.neural_net.fit(x, y)
+        self.neural_net.partial_fit(x, y, classes=np.array([0, 1]))
         self.ready = True
 
     @staticmethod
@@ -51,9 +51,15 @@ class QuestionPairsClassifier(object):
         else:
             raise ValueError("Model not fitted")
 
+    def predict_probability(self, x):
+        if self.ready:
+            x = self.imputer.fit_transform(x)
+            x = self.scaler.transform(x)
+            return self.neural_net.predict_proba(x)
+        raise ValueError("Model not fitted")
+
 
 if __name__ == '__main__':
-    train = pd.read_csv('../data/train_features.csv', nrows=10000)
     features = [
         'len_q1', 'len_q2', 'diff_len', 'len_char_q1', 'len_char_q2', 'len_word_q1', 'len_word_q2', 'common_words',
         'fuzz_qratio', 'fuzz_wratio', 'fuzz_partial_ratio', 'fuzz_partial_token_set_ratio',
@@ -65,8 +71,11 @@ if __name__ == '__main__':
     ]
     features += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
     features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
-    x = train[features]
-    y = train['is_duplicate']
-    qpc = QuestionPairsClassifier(hidden_layer_sizes=(100, 50, 50, 10), max_iter=1000)
-    qpc.train_model(x, y)
+    qpc = QuestionPairsClassifier(hidden_layer_sizes=(100, 80, 50, 10), max_iter=1000)
+    for train_chunk in pd.read_csv('../data/train_features.csv', chunksize=10000):
+        print 'New chunk...'
+        x = train_chunk[features]
+        y = train_chunk['is_duplicate']
+        qpc.train_model(x, y)
+    print 'Saving model...'
     qpc.save_model('../models')
