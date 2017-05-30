@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
 """
-Main app
+Main app: each function controls a step in the process
 
-1. clean_train(): data enhancing, cleaning, and spell-checking
+1. clean_train(): train data enhancing, cleaning, and spell-checking
 2. create_features_train(): generate features from data
-3. Train model: train ML model
-3. Post-process: test data cleaning and feature creation
+3. clean_test(): test data cleaning and spell-checking
+4. train_neural_net(): calibrate a neural net to classify train set using its features
+5. predict(): generate same features on test set and use neural net to predict similarity
 """
 
 import pandas as pd
