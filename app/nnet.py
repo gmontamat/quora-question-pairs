@@ -15,8 +15,8 @@ from sklearn.preprocessing import StandardScaler, Imputer
 
 class QuestionPairsClassifier(object):
 
-    def __init__(self, model_path=None, hidden_layer_sizes=(100, 100),
-                 activation='tanh', solver='adam', alpha=1e-7, max_iter=1000):
+    def __init__(self, model_path=None, hidden_layer_sizes=(100,), activation='relu',
+                 solver='adam', alpha=1e-4, max_iter=200):
         if model_path:
             self.neural_net, self.imputer, self.scaler = self.load_model(model_path)
             self.ready = True
@@ -27,12 +27,12 @@ class QuestionPairsClassifier(object):
             self.ready = False
 
     def train_model(self, x, y):
-        print 'Fixing NaNs in train data...'
+        # Fix NaNs in train data
         x = self.imputer.fit_transform(x)
-        print 'Scaling train data...'
+        # Scale train data
         self.scaler.partial_fit(x)
         x = self.scaler.transform(x)
-        print 'Fitting Neural Net...'
+        # Fit neural net
         if not self.ready:
             self.neural_net.partial_fit(x, y, classes=np.array([0, 1]))
             self.ready = True
@@ -47,19 +47,25 @@ class QuestionPairsClassifier(object):
         return neural_net, imputer, scaler
 
     def save_model(self, model_path):
-        if self.ready:
-            joblib.dump(self.neural_net, os.path.join(model_path, 'neural_net.pkl'))
-            joblib.dump(self.imputer, os.path.join(model_path, 'imputer.pkl'))
-            joblib.dump(self.scaler, os.path.join(model_path, 'scaler.pkl'))
-        else:
+        if not self.ready:
             raise ValueError("Model not fitted")
+        joblib.dump(self.neural_net, os.path.join(model_path, 'neural_net.pkl'))
+        joblib.dump(self.imputer, os.path.join(model_path, 'imputer.pkl'))
+        joblib.dump(self.scaler, os.path.join(model_path, 'scaler.pkl'))
 
     def predict_probability(self, x):
-        if self.ready:
-            x = self.imputer.fit_transform(x)
-            x = self.scaler.transform(x)
-            return self.neural_net.predict_proba(x)
-        raise ValueError("Model not fitted")
+        if not self.ready:
+            raise AttributeError("Model not fitted")
+        x = self.imputer.fit_transform(x)
+        x = self.scaler.transform(x)
+        return self.neural_net.predict_proba(x)
+
+    def predict(self, x):
+        if not self.ready:
+            raise AttributeError("Model not fitted")
+        x = self.imputer.fit_transform(x)
+        x = self.scaler.transform(x)
+        return self.neural_net.predict(x)
 
 
 if __name__ == '__main__':
