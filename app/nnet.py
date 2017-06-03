@@ -70,14 +70,14 @@ class QuestionPairsClassifier(object):
     def predict_probability(self, x):
         if not self.ready:
             raise AttributeError("Model not fitted")
-        x = self.imputer.fit_transform(x)
+        x = self.imputer.transform(x)
         x = self.scaler.transform(x)
         return self.neural_net.predict_proba(x)
 
     def predict(self, x):
         if not self.ready:
             raise AttributeError("Model not fitted")
-        x = self.imputer.fit_transform(x)
+        x = self.imputer.transform(x)
         x = self.scaler.transform(x)
         return self.neural_net.predict(x)
 
