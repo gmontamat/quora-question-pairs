@@ -16,17 +16,21 @@ from sklearn.preprocessing import StandardScaler, Imputer
 class QuestionPairsClassifier(object):
 
     def __init__(self, model_path=None, hidden_layer_sizes=(100,), activation='relu',
-                 solver='adam', alpha=1e-4, max_iter=200):
+                 solver='adam', alpha=1e-4, max_iter=200, learning_rate='constant',
+                 momentum=0.9, nesterovs_momentum=True, learning_rate_init=0.2):
         if model_path:
             self.neural_net, self.imputer, self.scaler = self.load_model(model_path)
             self.ready = True
         else:
-            self.neural_net = MLPClassifier(hidden_layer_sizes, activation, solver, alpha, max_iter)
+            self.neural_net = MLPClassifier(
+                hidden_layer_sizes, activation, solver, alpha, max_iter, learning_rate=learning_rate,
+                momentum=momentum, nesterovs_momentum=nesterovs_momentum, learning_rate_init=learning_rate_init
+            )
             self.imputer = Imputer()
             self.scaler = StandardScaler()
             self.ready = False
 
-    def train_model(self, x, y):
+    def train_model_online(self, x, y):
         # Fix NaNs in train data
         x = self.imputer.fit_transform(x)
         # Scale train data
@@ -38,6 +42,16 @@ class QuestionPairsClassifier(object):
             self.ready = True
         else:
             self.neural_net.partial_fit(x, y)
+
+    def train_model(self, x, y):
+        # Fix NaNs in train data
+        x = self.imputer.fit_transform(x)
+        # Scale train data
+        self.scaler.fit(x)
+        x = self.scaler.transform(x)
+        # Fit neural net
+        self.neural_net.fit(x, y)
+        self.ready = True
 
     @staticmethod
     def load_model(model_path):
