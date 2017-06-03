@@ -105,10 +105,9 @@ def train_neural_net():
     # features += ['q1_wv2_{}'.format(i + 1) for i in xrange(300)]
     # features += ['q2_wv2_{}'.format(i + 1) for i in xrange(300)]
     qpc = QuestionPairsClassifier(
-        hidden_layer_sizes=(100, 100, 100), activation='relu', solver='sgd', alpha=1e-6, max_iter=900
+        hidden_layer_sizes=(100, 100), activation='relu', solver='sgd', alpha=1e-6, max_iter=900
     )
-    train_full = pd.read_csv('../data/train_features.csv')
-    train, test = train_test_split(train_full, test_size=0.1)
+    train, test = train_test_split(pd.read_csv('../data/train_features.csv'), test_size=0.1)
     # train = pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=367540)
     # test =  pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=36754, skiprows=range(1,367541))
     qpc.train_model(train[features].as_matrix(), train['is_duplicate'].as_matrix())
@@ -120,8 +119,6 @@ def train_neural_net():
         qpc.predict_probability(test[features].as_matrix())[:, 1],
         labels=[0, 1])
     )
-    # print 'In-sample error: {}'.format(sum(train['predicted'] == train['is_duplicate']) / float(len(train)))
-    # print 'Out-of-sample error: {}'.format(sum(test['predicted'] == test['is_duplicate']) / float(len(test)))
     print 'Saving model...'
     qpc.save_model('../models')
 
@@ -211,4 +208,4 @@ if __name__ == '__main__':
     # clean_test()
     train_neural_net()
     # predict()
-    predict_again(30)
+    # predict_again(30)
