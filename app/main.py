@@ -112,7 +112,7 @@ def train_neural_net(model='nnet'):
     elif model == 'xgboost':
         qpc = XgboostClassifier()
     else:
-        raise ValueError('Model not recognized')
+        raise ValueError("Model not recognized")
     train, test = train_test_split(pd.read_csv('../data/train_features.csv'), test_size=0.1)
     # train = pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=367540)
     # test =  pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=36754, skiprows=range(1,367541))
@@ -120,21 +120,21 @@ def train_neural_net(model='nnet'):
     if model == 'nnet':
         print 'In-sample log-loss: {}'.format(qpc.neural_net.loss_)
     else:
-        print 'In-sample log-loss: {}'.format(
+        print 'In-sample log-loss: {}'.format(log_loss(
             train['is_duplicate'].as_matrix(),
             qpc.predict_probability(train[features].as_matrix())[:, 1],
             labels=[0, 1]
-        )
+        ))
     print 'Out-of-sample log-loss: {}'.format(log_loss(
         test['is_duplicate'].as_matrix(),
         qpc.predict_probability(test[features].as_matrix())[:, 1],
-        labels=[0, 1])
-    )
+        labels=[0, 1]
+    ))
     print 'Saving model...'
     qpc.save_model('../models')
 
 
-def predict():
+def predict(model='nnet'):
     """Load clean test set, generate its features, and predict similarity
     using a trained neural net"""
     predictions = pd.DataFrame(columns=('test_id', 'is_duplicate'))
@@ -150,8 +150,13 @@ def predict():
     ]
     features += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
     features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
-    # Load Neural Net for classification
-    qpc = QuestionPairsClassifier(model_path='../models')
+    # Load model used for classification
+    if model == 'nnet':
+        qpc = QuestionPairsClassifier(model_path='../models')
+    elif model == 'xgboost':
+        qpc = XgboostClassifier(model_path='../models')
+    else:
+        raise ValueError("Model not recognized")
     # Process test set in chunks
     ctr = 0
     for test_chunk in pd.read_csv('../data/test_clean.csv', chunksize=80000):
@@ -181,7 +186,7 @@ def predict():
     predictions.to_csv('../data/submission.csv', index=False, quoting=QUOTE_NONE)
 
 
-def predict_again(files):
+def predict_again(files, model='nnet'):
     """Load features and predict similarity
     """
     predictions = pd.DataFrame(columns=('test_id', 'is_duplicate'))
@@ -197,8 +202,13 @@ def predict_again(files):
     ]
     features += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
     features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
-    # Load Neural Net for classification
-    qpc = QuestionPairsClassifier(model_path='../models')
+    # Load model for classification
+    if model == 'nnet':
+        qpc = QuestionPairsClassifier(model_path='../models')
+    elif model == 'xgboost':
+        qpc = XgboostClassifier(model_path='../models')
+    else:
+        raise ValueError("Model not recognized")
     # Process each feature set
     for ctr in xrange(files):
         print 'Loading features from file #{}...'.format(ctr)
@@ -217,6 +227,6 @@ if __name__ == '__main__':
     # clean_train()
     # create_features_train()
     # clean_test()
-    train_neural_net('xgboost')
+    # train_neural_net('xgboost')
     # predict()
-    # predict_again(30)
+    predict_again(30, 'xgboost')
