@@ -13,6 +13,7 @@ Main app: each function controls a step in the process
 
 import pandas as pd
 from csv import QUOTE_ALL, QUOTE_NONE
+from sklearn.metrics import log_loss
 
 # User-defined modules
 from load_data import load_data
@@ -21,6 +22,10 @@ from cleaner import DataCleaner
 from spell_checker import QuestionSpellChecker
 from features import FeatureCreator
 from nnet import QuestionPairsClassifier
+
+
+# Disable warnings when including prediction columns
+pd.options.mode.chained_assignment = None
 
 
 def clean_train():
@@ -95,22 +100,28 @@ def train_neural_net():
         'GoogleNews_braycurtis_distance', 'GoogleNews_skew_q1vec', 'GoogleNews_skew_q2vec', 'GoogleNews_kur_q1vec',
         'GoogleNews_kur_q2vec'
     ]
-    # features += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
-    # features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
-    features += ['q1_wv2_{}'.format(i + 1) for i in xrange(300)]
-    features += ['q2_wv2_{}'.format(i + 1) for i in xrange(300)]
+    features += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
+    features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
+    # features += ['q1_wv2_{}'.format(i + 1) for i in xrange(300)]
+    # features += ['q2_wv2_{}'.format(i + 1) for i in xrange(300)]
     qpc = QuestionPairsClassifier(
-        hidden_layer_sizes=(1000, 1000, 1000, 1000), activation='logistic', solver='adam', alpha=1e-6, max_iter=200
+        hidden_layer_sizes=(100, 100, 100), activation='relu', solver='sgd', alpha=1e-6, max_iter=900
     )
-    # for train_chunk in pd.read_csv('../data/train_features.csv.gz', compression='gzip', chunksize=50000):
-    for train_chunk in pd.read_csv('../data/train_features.csv', chunksize=10000):
-        print 'New chunk...'
-        train, test = train_test_split(train_chunk, test_size=0.2)
-        qpc.train_model(train[features], train['is_duplicate'])
-        test['predicted'] = qpc.predict(test[features])
-        train['predicted'] = qpc.predict(train[features])
-        print 'In-sample error: {}'.format(sum(train['predicted'] == train['is_duplicate']) / float(len(train)))
-        print 'Out-of-sample error: {}'.format(sum(test['predicted'] == test['is_duplicate']) / float(len(test)))
+    train_full = pd.read_csv('../data/train_features.csv')
+    train, test = train_test_split(train_full, test_size=0.1)
+    # train = pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=367540)
+    # test =  pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=36754, skiprows=range(1,367541))
+    qpc.train_model(train[features].as_matrix(), train['is_duplicate'].as_matrix())
+    train['predicted'] = qpc.predict(train[features].as_matrix())
+    test['predicted'] = qpc.predict(test[features].as_matrix())
+    print 'In-sample log-loss: {}'.format(qpc.neural_net.loss_)
+    print 'Out-of-sample log-loss: {}'.format(log_loss(
+        test['is_duplicate'].as_matrix(),
+        qpc.predict_probability(test[features].as_matrix())[:, 1],
+        labels=[0, 1])
+    )
+    # print 'In-sample error: {}'.format(sum(train['predicted'] == train['is_duplicate']) / float(len(train)))
+    # print 'Out-of-sample error: {}'.format(sum(test['predicted'] == test['is_duplicate']) / float(len(test)))
     print 'Saving model...'
     qpc.save_model('../models')
 
@@ -150,7 +161,7 @@ def predict():
         test_chunk.to_csv('../data/test_features_{}.csv'.format(ctr), index=False, quoting=QUOTE_ALL)
         # Classify pair
         print 'Classifying...'
-        x = test_chunk[features]
+        x = test_chunk[features].as_matrix()
         test_chunk['is_duplicate'] = qpc.predict_probability(x)[:, 1]
         # Accumulate results
         print 'Saving results...'
@@ -163,7 +174,8 @@ def predict():
 
 
 def predict_again(files):
-    """Load features and predict similarity"""
+    """Load features and predict similarity
+    """
     predictions = pd.DataFrame(columns=('test_id', 'is_duplicate'))
     # Features used for classification
     features = [
@@ -182,10 +194,9 @@ def predict_again(files):
     # Process each feature set
     for ctr in xrange(files):
         print 'Loading features from file #{}...'.format(ctr)
-        test_chunk = pd.read_csv('../data/train_features_{}.csv.gz'.format(ctr), compression='gzip')
-        x = test_chunk[features]
+        test_chunk = pd.read_csv('../data/test_features_{}.csv.gz'.format(ctr), compression='gzip')
         print 'Predicting...'
-        test_chunk['is_duplicate'] = qpc.predict_probability(x)[:, 1]
+        test_chunk['is_duplicate'] = qpc.predict_probability(test_chunk[features].as_matrix())[:, 1]
         print 'Saving results...'
         predictions = pd.concat([predictions, test_chunk[['test_id', 'is_duplicate']]])
     # Save predictions
@@ -200,4 +211,4 @@ if __name__ == '__main__':
     # clean_test()
     train_neural_net()
     # predict()
-    # predict_again(30)
+    predict_again(30)
