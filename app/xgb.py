@@ -15,7 +15,7 @@ class XgboostClassifier(object):
 
     def __init__(self, model_path=None):
         if model_path:
-            self.model = self.load_model(model_path)
+            self.model, self.imputer = self.load_model(model_path)
             self.ready = True
         else:
             self.model = XGBClassifier()
@@ -31,21 +31,24 @@ class XgboostClassifier(object):
 
     @staticmethod
     def load_model(model_path):
-        return joblib.load(os.path.join(model_path, 'xgboost.pkl'))
+        model = joblib.load(os.path.join(model_path, 'xgboost.pkl'))
+        imputer = joblib.load(os.path.join(model_path, 'imputer.pkl'))
+        return model, imputer
 
     def save_model(self, model_path):
         if not self.ready:
             raise ValueError("Model not fitted")
         joblib.dump(self.model, os.path.join(model_path, 'xgboost.pkl'))
+        joblib.dump(self.imputer, os.path.join(model_path, 'imputer.pkl'))
 
     def predict_probability(self, x):
         if not self.ready:
             raise AttributeError("Model not fitted")
-        x = self.imputer.fit_transform(x)
+        x = self.imputer.transform(x)
         return self.model.predict_proba(x)
 
     def predict(self, x):
         if not self.ready:
             raise AttributeError("Model not fitted")
-        x = self.imputer.fit_transform(x)
+        x = self.imputer.transform(x)
         return self.model.predict(x)
