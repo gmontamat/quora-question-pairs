@@ -22,6 +22,7 @@ from cleaner import DataCleaner
 from spell_checker import QuestionSpellChecker
 from features import FeatureCreator
 from nnet import QuestionPairsClassifier
+from xgb import XgboostClassifier
 
 
 # Disable warnings when including prediction columns
@@ -87,7 +88,7 @@ def clean_test():
     test.to_csv('../data/test_clean.csv', index=False, quoting=QUOTE_ALL)
 
 
-def train_neural_net():
+def train_neural_net(model='nnet'):
     """Train and save model to classify question pairs
     """
     from sklearn.model_selection import train_test_split
@@ -104,16 +105,26 @@ def train_neural_net():
     features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
     # features += ['q1_wv2_{}'.format(i + 1) for i in xrange(300)]
     # features += ['q2_wv2_{}'.format(i + 1) for i in xrange(300)]
-    qpc = QuestionPairsClassifier(
-        hidden_layer_sizes=(100, 100), activation='relu', solver='sgd', alpha=1e-6, max_iter=900
-    )
+    if model == 'nnet':
+        qpc = QuestionPairsClassifier(
+            hidden_layer_sizes=(100, 100), activation='relu', solver='sgd', alpha=1e-6, max_iter=900
+        )
+    elif model == 'xgboost':
+        qpc = XgboostClassifier()
+    else:
+        raise ValueError('Model not recognized')
     train, test = train_test_split(pd.read_csv('../data/train_features.csv'), test_size=0.1)
     # train = pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=367540)
     # test =  pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=36754, skiprows=range(1,367541))
     qpc.train_model(train[features].as_matrix(), train['is_duplicate'].as_matrix())
-    train['predicted'] = qpc.predict(train[features].as_matrix())
-    test['predicted'] = qpc.predict(test[features].as_matrix())
-    print 'In-sample log-loss: {}'.format(qpc.neural_net.loss_)
+    if model == 'nnet':
+        print 'In-sample log-loss: {}'.format(qpc.neural_net.loss_)
+    else:
+        print 'In-sample log-loss: {}'.format(
+            train['is_duplicate'].as_matrix(),
+            qpc.predict_probability(train[features].as_matrix())[:, 1],
+            labels=[0, 1]
+        )
     print 'Out-of-sample log-loss: {}'.format(log_loss(
         test['is_duplicate'].as_matrix(),
         qpc.predict_probability(test[features].as_matrix())[:, 1],
@@ -206,6 +217,6 @@ if __name__ == '__main__':
     # clean_train()
     # create_features_train()
     # clean_test()
-    train_neural_net()
+    train_neural_net('xgboost')
     # predict()
     # predict_again(30)
