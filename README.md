@@ -19,7 +19,7 @@ Analysis and submissions code for the Kaggle competition. The idea is to identif
     - To extract text from Wikipedia dumps: https://github.com/attardi/wikiextractor
 * Word tagging (verb, noun, etc.)
 
-### Prediction
+### Prediction and features
 
 * Several approaches
     - https://www.linkedin.com/pulse/duplicate-quora-question-abhishek-thakur
@@ -36,6 +36,14 @@ Analysis and submissions code for the Kaggle competition. The idea is to identif
     - http://stevenloria.com/finding-important-words-in-a-document-using-tf-idf/
     - http://blog.christianperone.com/2011/09/machine-learning-text-feature-extraction-tf-idf-part-i/
     - http://blog.christianperone.com/2011/10/machine-learning-text-feature-extraction-tf-idf-part-ii/
+
+### Models
+
+* Neural networks
+    - http://scikit-learn.org/stable/modules/neural_networks_supervised.html
+* Xgboost
+    - http://xgboost.readthedocs.io/en/latest/
+    - Kernel example: https://www.kaggle.com/hbaflast/lb-0-158-xgb-handcrafted-leaky/code
 
 ## Useful links
 
