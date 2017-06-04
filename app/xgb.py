@@ -16,7 +16,11 @@ class XgboostClassifier(object):
             self.params, self.model = self.load_model(model_path)
             self.ready = True
         else:
-            if not params:
+            self.model = None
+            if params:
+                self.params = params
+            else:
+                # Default parameters
                 self.params = {
                     'objective': 'binary:logistic',
                     'eval_metric': 'logloss',
@@ -25,8 +29,6 @@ class XgboostClassifier(object):
                     'subsample': 0.6,
                     'base_score': 0.2
                 }
-            else:
-                self.params = params
             self.ready = False
 
     def train_model(self, x_train, y_train, x_valid, y_valid):
