@@ -102,3 +102,4 @@ ENV/
 *.bz2
 wiki_*
 *.pkl
+*.bin
