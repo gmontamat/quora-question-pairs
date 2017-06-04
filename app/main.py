@@ -6,14 +6,16 @@ Main app: each function controls a step in the process
 1. clean_train(): train data enhancing, cleaning, and spell-checking
 2. create_features_train(): generate features from data
 3. clean_test(): test data cleaning and spell-checking
-4. train_neural_net(): calibrate a neural net to classify train set using its features
-5. predict(): generate same features on test set and use neural net to predict similarity
+4. train_model(): calibrate a model to classify train set using its features
+5. predict(): generate features on test set and use trained model to predict similarity
 6. predict_again(): same as above but uses pre-computed features
 """
 
 import pandas as pd
+
 from csv import QUOTE_ALL, QUOTE_NONE
 from sklearn.metrics import log_loss
+from sklearn.model_selection import train_test_split
 
 # User-defined modules
 from load_data import load_data
@@ -23,7 +25,6 @@ from spell_checker import QuestionSpellChecker
 from features import FeatureCreator
 from nnet import QuestionPairsClassifier
 from xgb import XgboostClassifier
-
 
 # Disable warnings when including prediction columns
 pd.options.mode.chained_assignment = None
@@ -88,10 +89,9 @@ def clean_test():
     test.to_csv('../data/test_clean.csv', index=False, quoting=QUOTE_ALL)
 
 
-def train_neural_net(model='nnet'):
+def train_model(model='nnet'):
     """Train and save model to classify question pairs
     """
-    from sklearn.model_selection import train_test_split
     features = [
         'len_q1', 'len_q2', 'diff_len', 'len_char_q1', 'len_char_q2', 'len_word_q1', 'len_word_q2', 'common_words',
         'fuzz_qratio', 'fuzz_wratio', 'fuzz_partial_ratio', 'fuzz_partial_token_set_ratio',
@@ -105,31 +105,29 @@ def train_neural_net(model='nnet'):
     features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
     # features += ['q1_wv2_{}'.format(i + 1) for i in xrange(300)]
     # features += ['q2_wv2_{}'.format(i + 1) for i in xrange(300)]
+    # Load train and test sets
+    train, test = train_test_split(pd.read_csv('../data/train_features.csv', nrows=1000), test_size=0.1)
+    # train = pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=367549)
+    # test =  pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=36754, skiprows=range(1,367550))
     if model == 'nnet':
         qpc = QuestionPairsClassifier(
             hidden_layer_sizes=(100, 100), activation='relu', solver='sgd', alpha=1e-6, max_iter=900
         )
-    elif model == 'xgboost':
-        qpc = XgboostClassifier()
-    else:
-        raise ValueError("Model not recognized")
-    train, test = train_test_split(pd.read_csv('../data/train_features.csv'), test_size=0.1)
-    # train = pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=367540)
-    # test =  pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=36754, skiprows=range(1,367541))
-    qpc.train_model(train[features].as_matrix(), train['is_duplicate'].as_matrix())
-    if model == 'nnet':
+        qpc.train_model(train[features].as_matrix(), train['is_duplicate'].as_matrix())
         print 'In-sample log-loss: {}'.format(qpc.neural_net.loss_)
-    else:
-        print 'In-sample log-loss: {}'.format(log_loss(
-            train['is_duplicate'].as_matrix(),
-            qpc.predict_probability(train[features].as_matrix())[:, 1],
+        print 'Out-of-sample log-loss: {}'.format(log_loss(
+            test['is_duplicate'].as_matrix(),
+            qpc.predict_probability(test[features].as_matrix()),
             labels=[0, 1]
         ))
-    print 'Out-of-sample log-loss: {}'.format(log_loss(
-        test['is_duplicate'].as_matrix(),
-        qpc.predict_probability(test[features].as_matrix())[:, 1],
-        labels=[0, 1]
-    ))
+    elif model == 'xgboost':
+        qpc = XgboostClassifier()
+        qpc.train_model(
+            train[features].as_matrix(), train['is_duplicate'].as_matrix(),
+            test[features].as_matrix(), test['is_duplicate'].as_matrix()
+        )
+    else:
+        raise ValueError("Model not recognized")
     print 'Saving model...'
     qpc.save_model('../models')
 
@@ -174,8 +172,7 @@ def predict(model='nnet'):
         test_chunk.to_csv('../data/test_features_{}.csv'.format(ctr), index=False, quoting=QUOTE_ALL)
         # Classify pair
         print 'Classifying...'
-        x = test_chunk[features].as_matrix()
-        test_chunk['is_duplicate'] = qpc.predict_probability(x)[:, 1]
+        test_chunk['is_duplicate'] = qpc.predict_probability(test_chunk[features].as_matrix())
         # Accumulate results
         print 'Saving results...'
         predictions = pd.concat([predictions, test_chunk[['test_id', 'is_duplicate']]])
@@ -214,7 +211,7 @@ def predict_again(files, model='nnet'):
         print 'Loading features from file #{}...'.format(ctr)
         test_chunk = pd.read_csv('../data/test_features_{}.csv.gz'.format(ctr), compression='gzip')
         print 'Predicting...'
-        test_chunk['is_duplicate'] = qpc.predict_probability(test_chunk[features].as_matrix())[:, 1]
+        test_chunk['is_duplicate'] = qpc.predict_probability(test_chunk[features].as_matrix())
         print 'Saving results...'
         predictions = pd.concat([predictions, test_chunk[['test_id', 'is_duplicate']]])
     # Save predictions
@@ -227,6 +224,6 @@ if __name__ == '__main__':
     # clean_train()
     # create_features_train()
     # clean_test()
-    # train_neural_net('xgboost')
+    train_model('xgboost')
     # predict()
-    predict_again(30, 'xgboost')
+    # predict_again(30, 'xgboost')
