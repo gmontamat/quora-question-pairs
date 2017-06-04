@@ -5,50 +5,56 @@ Train a Xgboost model on train set
 """
 
 import os
-
-from sklearn.externals import joblib
-from sklearn.preprocessing import Imputer
-from xgboost import XGBClassifier
+import cPickle
+import xgboost as xgb
 
 
 class XgboostClassifier(object):
 
-    def __init__(self, model_path=None):
+    def __init__(self, model_path=None, params=None):
         if model_path:
-            self.model, self.imputer = self.load_model(model_path)
+            self.params, self.model = self.load_model(model_path)
             self.ready = True
         else:
-            self.model = XGBClassifier()
-            self.imputer = Imputer()
+            if not params:
+                self.params = {
+                    'objective': 'binary:logistic',
+                    'eval_metric': 'logloss',
+                    'eta': 0.02,
+                    'max_depth': 7,
+                    'subsample': 0.6,
+                    'base_score': 0.2
+                }
+            else:
+                self.params = params
             self.ready = False
 
-    def train_model(self, x, y):
-        # Fix NaNs in train data
-        x = self.imputer.fit_transform(x)
-        # Fit model
-        self.model.fit(x, y)
+    def train_model(self, x_train, y_train, x_valid, y_valid):
+        d_train = xgb.DMatrix(x_train, label=y_train)
+        d_valid = xgb.DMatrix(x_valid, label=y_valid)
+        watchlist = [(d_train, 'train'), (d_valid, 'valid')]
+        self.model = xgb.train(self.params, d_train, 2500, watchlist, early_stopping_rounds=50, verbose_eval=50)
         self.ready = True
 
     @staticmethod
     def load_model(model_path):
-        model = joblib.load(os.path.join(model_path, 'xgboost.pkl'))
-        imputer = joblib.load(os.path.join(model_path, 'imputer.pkl'))
-        return model, imputer
+        # Load model
+        model = xgb.Booster()
+        model.load_model(os.path.join(model_path, 'xgboost.bin'))
+        # Load additional parameters
+        with open(os.path.join(model_path, 'xgboost.pkl'), 'rb') as fin:
+            params, model.best_ntree_limit = cPickle.load(fin)
+        return params, model
 
     def save_model(self, model_path):
         if not self.ready:
             raise ValueError("Model not fitted")
-        joblib.dump(self.model, os.path.join(model_path, 'xgboost.pkl'))
-        joblib.dump(self.imputer, os.path.join(model_path, 'imputer.pkl'))
+        self.model.save_model(os.path.join(model_path, 'xgboost.bin'))
+        # Save additional parameters
+        with open(os.path.join(model_path, 'xgboost.pkl'), 'wb') as fout:
+            cPickle.dump([self.params, self.model.best_ntree_limit], fout)
 
     def predict_probability(self, x):
         if not self.ready:
             raise AttributeError("Model not fitted")
-        x = self.imputer.transform(x)
-        return self.model.predict_proba(x)
-
-    def predict(self, x):
-        if not self.ready:
-            raise AttributeError("Model not fitted")
-        x = self.imputer.transform(x)
-        return self.model.predict(x)
+        return self.model.predict(xgb.DMatrix(x), ntree_limit=self.model.best_ntree_limit)
