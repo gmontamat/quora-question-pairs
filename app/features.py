@@ -7,7 +7,10 @@ Generate features from data
 import gensim
 import fuzzywuzzy.fuzz as fuzz
 import numpy as np
+import pandas as pd
 
+from collections import Counter
+from functools import partial
 from nltk import word_tokenize
 from nltk.corpus import stopwords
 from scipy.stats import skew, kurtosis
@@ -36,6 +39,180 @@ class FeatureCreator(object):
                 set(str(x[self.q1_column]).lower().split()).intersection(set(str(x[self.q2_column]).lower().split()))
             ), axis=1
         )
+
+    def add_additional_features(self):
+        """Compute TF-IDF and some other interesting features
+        """
+        # Create columns with list of words for each question
+        self.df['q1_words'] = self.df[self.q1_column].map(lambda x: str(x).lower().split())
+        self.df['q2_words'] = self.df[self.q2_column].map(lambda x: str(x).lower().split())
+        # Compute word frequency and weights for TF-IDF
+        questions = pd.Series(self.df['q1_words'].tolist() + self.df['q2_words'].tolist())
+        words = [word for question in questions for word in question]
+        word_count = Counter(words)
+        weights = {word: self.compute_weight(count) for word, count in word_count.iteritems()}
+        # Add features
+        self.df['word_match'] = self.df.apply(partial(self.word_match_share), axis=1, raw=True)
+        self.df['tfidf_word_match'] = self.df.apply(
+            partial(self.tfidf_word_match_share, weights=weights, ignore_stop_words=True), axis=1, raw=True
+        )
+        self.df['tfidf_word_match_stops'] = self.df.apply(
+            partial(self.tfidf_word_match_share, weights=weights, ignore_stop_words=False), axis=1, raw=True
+        )
+        self.df['jaccard_similarity'] = self.df.apply(partial(self.jaccard_similarity), axis=1, raw=True)
+        self.df['word_count_diff'] = self.df.apply(partial(self.word_count_diff), axis=1, raw=True)
+        self.df['word_count_ratio'] = self.df.apply(partial(self.word_count_ratio), axis=1, raw=True)
+        self.df['unique_word_count_diff'] = self.df.apply(partial(self.unique_word_count_diff), axis=1, raw=True)
+        self.df['unique_word_count_ratio'] = self.df.apply(partial(self.unique_word_count_ratio), axis=1, raw=True)
+        self.df['unique_nonstop_word_count_diff'] = self.df.apply(
+            partial(self.unique_nonstop_word_count_diff), axis=1, raw=True
+        )
+        self.df['unique_nonstop_word_count_ratio'] = self.df.apply(
+            partial(self.unique_nonstop_word_count_ratio), axis=1, raw=True
+        )
+        self.df['same_start'] = self.df.apply(partial(self.same_start), axis=1, raw=True)
+        self.df['char_diff'] = self.df.apply(partial(self.char_diff), axis=1, raw=True)
+        self.df['char_diff_unique_nonstop'] = self.df.apply(partial(self.char_diff_unique_nonstop), axis=1, raw=True)
+        self.df['total_unique_words'] = self.df.apply(partial(self.total_unique_words), axis=1, raw=True)
+        self.df['total_unique_words_nonstop'] = self.df.apply(
+            partial(self.total_unique_words_nonstop), axis=1, raw=True
+        )
+        self.df['char_ratio'] = self.df.apply(partial(self.char_ratio), axis=1, raw=True)
+        # Remove columns used for calculations
+        self.df = self.df.drop(['q1_words', 'q2_words'], axis=1)
+
+    @staticmethod
+    def compute_weight(count, epsilon=10000, min_count=2):
+        if count < min_count:
+            return .0
+        else:
+            return 1.0 / (count + epsilon)
+
+    def word_match_share(self, row):
+        q1_words = set()
+        q2_words = set()
+        for word in row['q1_words']:
+            if word not in self.stop_words:
+                q1_words.add(word)
+        for word in row['q2_words']:
+            if word not in self.stop_words:
+                q2_words.add(word)
+        if not q1_words or not q2_words:
+            return .0
+        shared_words_q1 = np.sum([1.0 for word in q1_words if word in q2_words])
+        shared_words_q2 = np.sum([1.0 for word in q2_words if word in q1_words])
+        return (shared_words_q1 + shared_words_q2) / (len(q1_words) + len(q2_words))
+
+    def tfidf_word_match_share(self, row, weights, ignore_stop_words):
+        q1_words = set()
+        q2_words = set()
+        if ignore_stop_words:
+            for word in row['q1_words']:
+                q1_words.add(word)
+            for word in row['q2_words']:
+                q2_words.add(word)
+        else:
+            for word in row['q1_words']:
+                if word not in self.stop_words:
+                    q1_words.add(word)
+            for word in row['q2_words']:
+                if word not in self.stop_words:
+                    q2_words.add(word)
+        if not q1_words or not q2_words:
+            return .0
+        shared_weights = np.sum([weights.get(word, .0) for word in q1_words if word in q2_words])
+        shared_weights += np.sum([weights.get(word, .0) for word in q2_words if word in q1_words])
+        total_weights = np.sum([weights.get(word, .0) for word in q1_words])
+        total_weights += np.sum([weights.get(word, .0) for word in q2_words])
+        return shared_weights / total_weights
+
+    @staticmethod
+    def jaccard_similarity(row):
+        words_in_common = set(row['q1_words']).intersection(set(row['q2_words']))
+        unique_words = set(row['q1_words']).union(row['q2_words'])
+        if not unique_words:
+            return 1.0
+        return len(words_in_common) / float(len(unique_words))
+
+    @staticmethod
+    def word_count_diff(row):
+        return abs(len(row['q1_words']) - len(row['q1_words']))
+
+    @staticmethod
+    def word_count_ratio(row):
+        l1 = float(len(row['q1_words']))
+        l2 = len(row['q2_words'])
+        if l2 == 0:
+            return np.nan
+        if l1 / l2:
+            return l2 / l1
+        else:
+            return l1 / l2
+
+    @staticmethod
+    def unique_word_count_diff(row):
+        return abs(len(set(row['q1_words'])) - len(set(row['q2_words'])))
+
+    @staticmethod
+    def unique_word_count_ratio(row):
+        l1 = float(len(set(row['q1_words'])))
+        l2 = len(set(row['q2_words']))
+        if l2 == 0:
+            return np.nan
+        if l1 / l2:
+            return l2 / l1
+        else:
+            return l1 / l2
+
+    def unique_nonstop_word_count_diff(self, row):
+        return abs(
+            len([word for word in set(row['q1_words']) if word not in self.stop_words]) -
+            len([word for word in set(row['q2_words']) if word not in self.stop_words])
+        )
+
+    def unique_nonstop_word_count_ratio(self, row):
+        l1 = float(len([word for word in set(row['q1_words']) if word not in self.stop_words]))
+        l2 = len([word for word in set(row['q2_words']) if word not in self.stop_words])
+        if l2 == 0:
+            return np.nan
+        if l1 / l2:
+            return l2 / l1
+        else:
+            return l1 / l2
+
+    @staticmethod
+    def same_start(row):
+        if not row['q1_words'] or not row['q2_words']:
+            return np.nan
+        return int(row['q1_words'][0] == row['q2_words'][0])
+
+    @staticmethod
+    def char_diff(row):
+        return abs(len(''.join(row['q1_words'])) - len(''.join(row['q2_words'])))
+
+    def char_diff_unique_nonstop(self, row):
+        return abs(
+            len(''.join([word for word in set(row['q1_words']) if word not in self.stop_words])) -
+            len(''.join([word for word in set(row['q1_words']) if word not in self.stop_words]))
+        )
+
+    @staticmethod
+    def total_unique_words(row):
+        return len(set(row['q1_words']).union(row['q2_words']))
+
+    def total_unique_words_nonstop(self, row):
+        return len([word for word in set(row['q1_words']).union(row['q2_words']) if word not in self.stop_words])
+
+    @staticmethod
+    def char_ratio(row):
+        l1 = len(''.join(row['q1_words']))
+        l2 = len(''.join(row['q2_words']))
+        if l2 == 0:
+            return np.nan
+        if l1 / l2:
+            return l2 / l1
+        else:
+            return l1 / l2
 
     def add_fuzz_features(self):
         self.df['fuzz_qratio'] = self.df.apply(
@@ -134,10 +311,12 @@ class FeatureCreator(object):
 if __name__ == '__main__':
     from csv import QUOTE_ALL
     from load_data import load_data
+
     df = load_data('../data/train.csv')
     fc = FeatureCreator(df)
     fc.add_word2vec_features('../models/GoogleNews-vectors-negative300.bin.gz', 'GoogleNews')
     fc.add_basic_features()
+    fc.add_additional_features()
     fc.add_fuzz_features()
     print list(df)
     df.to_csv('train_features.csv', index=False, quoting=QUOTE_ALL)
