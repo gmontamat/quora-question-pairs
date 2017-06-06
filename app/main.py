@@ -5,10 +5,10 @@ Main app: each function controls a step in the process
 
 1. clean_train(): train data enhancing, cleaning, and spell-checking
 2. create_features_train(): generate features from data
-3. clean_test(): test data cleaning and spell-checking
-4. train_model(): calibrate a model to classify train set using its features
-5. predict(): generate features on test set and use trained model to predict similarity
-6. predict_again(): same as above but uses pre-computed features
+3. train_model(): calibrate a model to classify train set using its features
+4. clean_test(): test data cleaning and spell-checking
+5. create_features_test(): generate features for test set and save in files
+6. predict(): load test features and predict similarity with a trained model
 """
 
 import pandas as pd
@@ -126,28 +126,11 @@ def create_features_train():
     train.to_csv('../data/train_features.csv', index=False, quoting=QUOTE_ALL)
 
 
-def clean_test():
-    """Cleaning of test data
-    """
-    print 'Cleaning data...'
-    test = load_data('../data/test.csv')
-    dc = DataCleaner(test)
-    dc.clean_column('question1', 'question1_clean')
-    dc.clean_column('question2', 'question2_clean')
-    print 'Spell-checking data...'
-    sc = QuestionSpellChecker(test, '../dictionaries/text/')
-    sc.clean_column(('question1_clean', 'question2_clean'), ('question1_sc', 'question2_sc'))
-    print 'Saving progress...'
-    test.to_csv('../data/test_clean.csv', index=False, quoting=QUOTE_ALL)
-
-
 def train_model(model='nnet'):
     """Train and save model to classify question pairs
     """
-    # Load train and test sets
-    train, test = train_test_split(pd.read_csv('../data/train_features.csv', usecols=range(38), nrows=403000), test_size=0.1)
-    # train = pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=367549)
-    # test =  pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=36754, skiprows=range(1,367550))
+    # Split train data into a 'train' set and a 'test' set used for validation
+    train, test = train_test_split(pd.read_csv('../data/train_features.csv'), test_size=0.1)
     if model == 'nnet':
         qpc = QuestionPairsClassifier(
             hidden_layer_sizes=(100, 100), activation='relu', solver='sgd', alpha=1e-6, max_iter=900
@@ -171,18 +154,24 @@ def train_model(model='nnet'):
     qpc.save_model('../models')
 
 
-def predict(model='nnet'):
-    """Load clean test set, generate its features, and predict similarity
-    using a trained neural net"""
-    predictions = pd.DataFrame(columns=('test_id', 'is_duplicate'))
-    # Load model used for classification
-    if model == 'nnet':
-        qpc = QuestionPairsClassifier(model_path='../models')
-    elif model == 'xgboost':
-        qpc = XgboostClassifier(model_path='../models')
-    else:
-        raise ValueError("Model not recognized")
-    # Process test set in chunks
+def clean_test():
+    """Cleaning of test data
+    """
+    print 'Cleaning data...'
+    test = load_data('../data/test.csv')
+    dc = DataCleaner(test)
+    dc.clean_column('question1', 'question1_clean')
+    dc.clean_column('question2', 'question2_clean')
+    print 'Spell-checking data...'
+    sc = QuestionSpellChecker(test, '../dictionaries/text/')
+    sc.clean_column(('question1_clean', 'question2_clean'), ('question1_sc', 'question2_sc'))
+    print 'Saving progress...'
+    test.to_csv('../data/test_clean.csv', index=False, quoting=QUOTE_ALL)
+
+
+def create_features_test():
+    """Load clean test set and generate its features
+    """
     ctr = 0
     for test_chunk in pd.read_csv('../data/test_clean.csv', chunksize=80000):
         print 'New chunk...'
@@ -199,21 +188,11 @@ def predict(model='nnet'):
         # Save features for future use
         print 'Saving features...'
         test_chunk.to_csv('../data/test_features_{}.csv'.format(ctr), index=False, quoting=QUOTE_ALL)
-        # Classify pair
-        print 'Classifying...'
-        test_chunk['is_duplicate'] = qpc.predict_probability(test_chunk[FEATURES].as_matrix())
-        # Accumulate results
-        print 'Saving results...'
-        predictions = pd.concat([predictions, test_chunk[['test_id', 'is_duplicate']]])
         ctr += 1
-    # Save predictions
-    print 'Generating submission file...'
-    predictions['test_id'] = predictions['test_id'].astype(int)
-    predictions.to_csv('../data/submission.csv', index=False, quoting=QUOTE_NONE)
 
 
-def predict_again(files, model='nnet'):
-    """Load features and predict similarity
+def predict(files, model='nnet'):
+    """Load test features and predict similarity of question pairs
     """
     predictions = pd.DataFrame(columns=('test_id', 'is_duplicate'))
     # Load model used for classification
@@ -227,7 +206,6 @@ def predict_again(files, model='nnet'):
     for ctr in xrange(files):
         print 'Loading features from file #{}...'.format(ctr)
         test_chunk = pd.read_csv('../data/test_features_{}.csv'.format(ctr))
-        # test_chunk = pd.read_csv('../data/test_features_{}.csv.gz'.format(ctr), compression='gzip')
         print 'Predicting...'
         test_chunk['is_duplicate'] = qpc.predict_probability(test_chunk[FEATURES].as_matrix())
         print 'Saving results...'
@@ -241,7 +219,7 @@ def predict_again(files, model='nnet'):
 if __name__ == '__main__':
     # clean_train()
     # create_features_train()
-    # clean_test()
     train_model('xgboost')
-    # predict()
-    # predict_again(30, 'xgboost')
+    # clean_test()
+    # create_features_test()
+    # predict(30, 'xgboost')
