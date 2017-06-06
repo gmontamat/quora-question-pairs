@@ -29,6 +29,56 @@ from xgb import XgboostClassifier
 # Disable warnings when including prediction columns
 pd.options.mode.chained_assignment = None
 
+# Features used for classification
+FEATURES = [
+    'len_q1',
+    'len_q2',
+    'diff_len',
+    'len_char_q1',
+    'len_char_q2',
+    'len_word_q1',
+    'len_word_q2',
+    'common_words',
+    'word_match',
+    'tfidf_word_match',
+    'tfidf_word_match_stops',
+    'jaccard_similarity',
+    'word_count_diff',
+    'word_count_ratio',
+    'unique_word_count_diff',
+    'unique_word_count_ratio',
+    'unique_nonstop_word_count_diff',
+    'unique_nonstop_word_count_ratio',
+    'same_start',
+    'char_diff',
+    'char_diff_unique_nonstop',
+    'total_unique_words',
+    'total_unique_words_nonstop',
+    'char_ratio',
+    'fuzz_qratio',
+    'fuzz_wratio',
+    'fuzz_partial_ratio',
+    'fuzz_partial_token_set_ratio',
+    'fuzz_partial_token_sort_ratio',
+    'fuzz_token_set_ratio',
+    'fuzz_token_sort_ratio',
+    'GoogleNews_norm_wmd',
+    'GoogleNews_wmd',
+    'GoogleNews_cosine_distance',
+    'GoogleNews_cityblock_distance',
+    'GoogleNews_jaccard_distance',
+    'GoogleNews_canberra_distance',
+    'GoogleNews_euclidean_distance',
+    'GoogleNews_minkowski_distance',
+    'GoogleNews_braycurtis_distance',
+    'GoogleNews_skew_q1vec',
+    'GoogleNews_skew_q2vec',
+    'GoogleNews_kur_q1vec',
+    'GoogleNews_kur_q2vec'
+]
+# FEATURES += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
+# FEATURES += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
+
 
 def clean_train():
     """Full cleaning and enhancing of train data
@@ -58,7 +108,7 @@ def clean_train():
 
 
 def create_features_train():
-    """Generate features to train ML model. Needs +16Gb of RAM!
+    """Generate features to train ML model. Needs ~32Gb of RAM!
     """
     train = load_data('../data/train_clean.csv')
     fc = FeatureCreator(train, 'question1_sc', 'question2_sc')
@@ -68,6 +118,8 @@ def create_features_train():
     # fc.add_word2vec_features('../models/freebase-vectors-skipgram1000-en.bin.gz', 'freebase', 1000)
     print 'Generating basic features...'
     fc.add_basic_features()
+    print 'Generating additional features...'
+    fc.add_additional_features()
     print 'Generating fuzzy features...'
     fc.add_fuzz_features()
     print 'Saving progress...'
@@ -92,39 +144,26 @@ def clean_test():
 def train_model(model='nnet'):
     """Train and save model to classify question pairs
     """
-    features = [
-        'len_q1', 'len_q2', 'diff_len', 'len_char_q1', 'len_char_q2', 'len_word_q1', 'len_word_q2', 'common_words',
-        'fuzz_qratio', 'fuzz_wratio', 'fuzz_partial_ratio', 'fuzz_partial_token_set_ratio',
-        'fuzz_partial_token_sort_ratio', 'fuzz_token_set_ratio', 'fuzz_token_sort_ratio', 'GoogleNews_norm_wmd',
-        'GoogleNews_wmd', 'GoogleNews_cosine_distance', 'GoogleNews_cityblock_distance', 'GoogleNews_jaccard_distance',
-        'GoogleNews_canberra_distance', 'GoogleNews_euclidean_distance', 'GoogleNews_minkowski_distance',
-        'GoogleNews_braycurtis_distance', 'GoogleNews_skew_q1vec', 'GoogleNews_skew_q2vec', 'GoogleNews_kur_q1vec',
-        'GoogleNews_kur_q2vec'
-    ]
-    features += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
-    features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
-    # features += ['q1_wv2_{}'.format(i + 1) for i in xrange(300)]
-    # features += ['q2_wv2_{}'.format(i + 1) for i in xrange(300)]
     # Load train and test sets
-    train, test = train_test_split(pd.read_csv('../data/train_features.csv', nrows=1000), test_size=0.1)
+    train, test = train_test_split(pd.read_csv('../data/train_features.csv', usecols=range(38), nrows=403000), test_size=0.1)
     # train = pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=367549)
     # test =  pd.read_csv('../data/train_features.csv.gz', compression='gzip', nrows=36754, skiprows=range(1,367550))
     if model == 'nnet':
         qpc = QuestionPairsClassifier(
             hidden_layer_sizes=(100, 100), activation='relu', solver='sgd', alpha=1e-6, max_iter=900
         )
-        qpc.train_model(train[features].as_matrix(), train['is_duplicate'].as_matrix())
+        qpc.train_model(train[FEATURES].as_matrix(), train['is_duplicate'].as_matrix())
         print 'In-sample log-loss: {}'.format(qpc.neural_net.loss_)
         print 'Out-of-sample log-loss: {}'.format(log_loss(
             test['is_duplicate'].as_matrix(),
-            qpc.predict_probability(test[features].as_matrix()),
+            qpc.predict_probability(test[FEATURES].as_matrix()),
             labels=[0, 1]
         ))
     elif model == 'xgboost':
         qpc = XgboostClassifier()
         qpc.train_model(
-            train[features].as_matrix(), train['is_duplicate'].as_matrix(),
-            test[features].as_matrix(), test['is_duplicate'].as_matrix()
+            train[FEATURES].as_matrix(), train['is_duplicate'].as_matrix(),
+            test[FEATURES].as_matrix(), test['is_duplicate'].as_matrix()
         )
     else:
         raise ValueError("Model not recognized")
@@ -136,18 +175,6 @@ def predict(model='nnet'):
     """Load clean test set, generate its features, and predict similarity
     using a trained neural net"""
     predictions = pd.DataFrame(columns=('test_id', 'is_duplicate'))
-    # Features used for classification
-    features = [
-        'len_q1', 'len_q2', 'diff_len', 'len_char_q1', 'len_char_q2', 'len_word_q1', 'len_word_q2', 'common_words',
-        'fuzz_qratio', 'fuzz_wratio', 'fuzz_partial_ratio', 'fuzz_partial_token_set_ratio',
-        'fuzz_partial_token_sort_ratio', 'fuzz_token_set_ratio', 'fuzz_token_sort_ratio', 'GoogleNews_norm_wmd',
-        'GoogleNews_wmd', 'GoogleNews_cosine_distance', 'GoogleNews_cityblock_distance', 'GoogleNews_jaccard_distance',
-        'GoogleNews_canberra_distance', 'GoogleNews_euclidean_distance', 'GoogleNews_minkowski_distance',
-        'GoogleNews_braycurtis_distance', 'GoogleNews_skew_q1vec', 'GoogleNews_skew_q2vec', 'GoogleNews_kur_q1vec',
-        'GoogleNews_kur_q2vec'
-    ]
-    features += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
-    features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
     # Load model used for classification
     if model == 'nnet':
         qpc = QuestionPairsClassifier(model_path='../models')
@@ -165,6 +192,8 @@ def predict(model='nnet'):
         fc.add_word2vec_features('../models/GoogleNews-vectors-negative300.bin.gz', 'GoogleNews')
         print 'Generating basic features...'
         fc.add_basic_features()
+        print 'Generating additional features...'
+        fc.add_additional_features()
         print 'Generating fuzzy features...'
         fc.add_fuzz_features()
         # Save features for future use
@@ -172,7 +201,7 @@ def predict(model='nnet'):
         test_chunk.to_csv('../data/test_features_{}.csv'.format(ctr), index=False, quoting=QUOTE_ALL)
         # Classify pair
         print 'Classifying...'
-        test_chunk['is_duplicate'] = qpc.predict_probability(test_chunk[features].as_matrix())
+        test_chunk['is_duplicate'] = qpc.predict_probability(test_chunk[FEATURES].as_matrix())
         # Accumulate results
         print 'Saving results...'
         predictions = pd.concat([predictions, test_chunk[['test_id', 'is_duplicate']]])
@@ -187,19 +216,7 @@ def predict_again(files, model='nnet'):
     """Load features and predict similarity
     """
     predictions = pd.DataFrame(columns=('test_id', 'is_duplicate'))
-    # Features used for classification
-    features = [
-        'len_q1', 'len_q2', 'diff_len', 'len_char_q1', 'len_char_q2', 'len_word_q1', 'len_word_q2', 'common_words',
-        'fuzz_qratio', 'fuzz_wratio', 'fuzz_partial_ratio', 'fuzz_partial_token_set_ratio',
-        'fuzz_partial_token_sort_ratio', 'fuzz_token_set_ratio', 'fuzz_token_sort_ratio', 'GoogleNews_norm_wmd',
-        'GoogleNews_wmd', 'GoogleNews_cosine_distance', 'GoogleNews_cityblock_distance', 'GoogleNews_jaccard_distance',
-        'GoogleNews_canberra_distance', 'GoogleNews_euclidean_distance', 'GoogleNews_minkowski_distance',
-        'GoogleNews_braycurtis_distance', 'GoogleNews_skew_q1vec', 'GoogleNews_skew_q2vec', 'GoogleNews_kur_q1vec',
-        'GoogleNews_kur_q2vec'
-    ]
-    features += ['GoogleNews_q1vec_{}'.format(i) for i in xrange(300)]
-    features += ['GoogleNews_q2vec_{}'.format(i) for i in xrange(300)]
-    # Load model for classification
+    # Load model used for classification
     if model == 'nnet':
         qpc = QuestionPairsClassifier(model_path='../models')
     elif model == 'xgboost':
@@ -209,9 +226,10 @@ def predict_again(files, model='nnet'):
     # Process each feature set
     for ctr in xrange(files):
         print 'Loading features from file #{}...'.format(ctr)
-        test_chunk = pd.read_csv('../data/test_features_{}.csv.gz'.format(ctr), compression='gzip')
+        test_chunk = pd.read_csv('../data/test_features_{}.csv'.format(ctr))
+        # test_chunk = pd.read_csv('../data/test_features_{}.csv.gz'.format(ctr), compression='gzip')
         print 'Predicting...'
-        test_chunk['is_duplicate'] = qpc.predict_probability(test_chunk[features].as_matrix())
+        test_chunk['is_duplicate'] = qpc.predict_probability(test_chunk[FEATURES].as_matrix())
         print 'Saving results...'
         predictions = pd.concat([predictions, test_chunk[['test_id', 'is_duplicate']]])
     # Save predictions
