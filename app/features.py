@@ -136,7 +136,7 @@ class FeatureCreator(object):
 
     @staticmethod
     def word_count_diff(row):
-        return abs(len(row['q1_words']) - len(row['q1_words']))
+        return abs(len(row['q1_words']) - len(row['q2_words']))
 
     @staticmethod
     def word_count_ratio(row):
@@ -193,7 +193,7 @@ class FeatureCreator(object):
     def char_diff_unique_nonstop(self, row):
         return abs(
             len(''.join([word for word in set(row['q1_words']) if word not in self.stop_words])) -
-            len(''.join([word for word in set(row['q1_words']) if word not in self.stop_words]))
+            len(''.join([word for word in set(row['q2_words']) if word not in self.stop_words]))
         )
 
     @staticmethod
@@ -205,7 +205,7 @@ class FeatureCreator(object):
 
     @staticmethod
     def char_ratio(row):
-        l1 = len(''.join(row['q1_words']))
+        l1 = float(len(''.join(row['q1_words'])))
         l2 = len(''.join(row['q2_words']))
         if l2 == 0:
             return np.nan
