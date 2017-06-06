@@ -1,6 +1,7 @@
 # Quora Question Pairs
 
 Analysis and submissions code for the Kaggle competition. The idea is to identify question pairs that have the same intent.
+This code doesn't use the "leaky" features mentioned on Kaggle!
 
 ## Ideas
 
