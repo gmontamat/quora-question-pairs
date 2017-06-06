@@ -27,6 +27,7 @@ Analysis and submissions code for the Kaggle competition. The idea is to identif
     - https://engineering.quora.com/Semantic-Question-Matching-with-Deep-Learning
     - https://www.kaggle.com/c/quora-question-pairs/discussion/30260
     - https://www.kaggle.com/c/quora-question-pairs/discussion/30340
+    - https://www.kaggle.com/act444/lb-0-158-xgb-handcrafted-leaky
 * Word2Vec
     - https://code.google.com/archive/p/word2vec/
 	- http://mccormickml.com/2016/04/12/googles-pretrained-word2vec-model-in-python/
