@@ -79,7 +79,8 @@ class FeatureCreator(object):
         )
         self.df['char_ratio'] = self.df.apply(partial(self.char_ratio), axis=1, raw=True)
         # Remove columns used for calculations
-        self.df = self.df.drop(['q1_words', 'q2_words'], axis=1)
+        self.df.drop('q1_words', axis=1, inplace=True)
+        self.df.drop('q2_words', axis=1, inplace=True)
 
     @staticmethod
     def compute_weight(count, epsilon=10000, min_count=2):
