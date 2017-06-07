@@ -94,7 +94,7 @@ def clean_train():
     train = pd.concat([
         load_data('../data/train.csv', remove_id_columns=False),
         load_data('../data/train_new.csv', remove_id_columns=False)
-    ])
+    ], ignore_index=True)
     dc = DataCleaner(train)
     dc.clean_column('question1', 'question1_clean')
     dc.clean_column('question2', 'question2_clean')
